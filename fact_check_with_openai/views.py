@@ -1,37 +1,63 @@
+from __future__ import annotations
+
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views import View
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpRequest, HttpResponse
 import json
 import traceback
 
-from .utils import check_fact_with_rag
+from .utils import check_fact_simple
 
 
 @method_decorator(csrf_exempt, name="dispatch")
 class FactCheckWithOpenaiView(View):
-    def post(self, request, *args, **kwargs):
+    """
+    POST /fact_check_with_openai/
+    Body: { "query": "<claim text>" }
+    Response:
+      { ok: true, query: str, case: str, talk: str, sources: [ {title, url}, ... ] }
+    """
+
+    def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         try:
-            data = json.loads(request.body.decode("utf-8"))
-            query = data.get("query")
+            # تأكّد من أن البودي JSON صالح
+            try:
+                payload = json.loads(request.body.decode("utf-8"))
+            except json.JSONDecodeError:
+                return JsonResponse(
+                    {"ok": False, "error": "Invalid JSON body"},
+                    status=400,
+                )
+
+            query = (payload.get("query") or "").strip()
             if not query:
-                return JsonResponse({"ok": False, "error": "query is required"}, status=400)
+                return JsonResponse(
+                    {"ok": False, "error": "query is required"},
+                    status=400,
+                )
 
-            # ✅ بعد التوحيد: بنمرر k_sources بدل k_sources_extra
-            result = check_fact_with_rag(query, k_sources=10)
+            # ✅ نمرّر k_sources (الموحد) بدل أي اسم قديم
+            result = check_fact_simple(query, k_sources=10)
 
-            # ✅ رجّع المفتاح الموحد "sources"
-            return JsonResponse({
-                "ok": True,
-                "query": query,
-                "case": result.get("case"),
-                "talk": result.get("talk"),
-                "sources": result.get("sources", []),
-            })
+            # ✅ نعيد المفاتيح الموحدة
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "query": query,
+                    "case": result.get("case"),
+                    "talk": result.get("talk"),
+                    "sources": result.get("sources", []),
+                },
+                status=200,
+            )
 
         except Exception as e:
-            return JsonResponse({
-                "ok": False,
-                "error": str(e),
-                "trace": traceback.format_exc()
-            }, status=500)
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "error": str(e),
+                    "trace": traceback.format_exc(),
+                },
+                status=500,
+            )
