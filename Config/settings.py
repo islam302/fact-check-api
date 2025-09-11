@@ -31,6 +31,7 @@ ALLOWED_HOSTS = [
     'fact-check-api-32dx.onrender.com',
     'fact-check-nine.vercel.app',
     'fact-check.una-oic.org'
+
 ]
 
 CORS_ALLOWED_ORIGINS = [
@@ -56,9 +57,10 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
