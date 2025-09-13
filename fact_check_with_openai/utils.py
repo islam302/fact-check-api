@@ -79,14 +79,14 @@ FACT_PROMPT_SYSTEM = (
     "3) If verdict is True, return ALL confirming sources (no fixed limit)."
 )
 
-def check_fact_simple(claim_text: str, k_sources: int = 10) -> dict:
+def check_fact_simple(claim_text: str, k_sources: int = 5) -> dict:
     try:
         print(f"🧠 Fact-checking: {claim_text}")
         lang = _lang_hint_from_claim(claim_text)
 
         results = []
         for domain in NEWS_AGENCIES:
-            domain_results = _fetch_serp(f"{claim_text} site:{domain}", num=4)
+            domain_results = _fetch_serp(f"{claim_text} site:{domain}", num=2)
             results += domain_results
         google_results = _fetch_serp(claim_text, num=k_sources)
         results += google_results
