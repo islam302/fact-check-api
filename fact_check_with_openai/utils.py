@@ -19,8 +19,23 @@ if not SERPAPI_KEY or not OPENAI_API_KEY:
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 def _lang_hint_from_claim(text: str) -> str:
-    if not text:
-        return "en"
+    try:
+        resp = client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[
+                {"role": "system", "content": "Detect the input language and return ONLY its ISO 639-1 code (like ar, en, fr, es, de)."},
+                {"role": "user", "content": text.strip()},
+            ],
+            temperature=0.0,
+            max_tokens=5
+        )
+        lang = (resp.choices[0].message.content or "").strip().lower()
+        if len(lang) == 2:
+            return lang
+    except Exception:
+        pass
+
+    # fallback
     ar_count = sum(1 for ch in text if '\u0600' <= ch <= '\u06FF')
     ratio = ar_count / max(1, len(text))
     return "ar" if ratio >= 0.15 else "en"
@@ -59,29 +74,44 @@ FACT_PROMPT_SYSTEM = (
     "- If evidence is insufficient, conflicting, or off-topic, the verdict must be: Uncertain.\n"
     "- Prefer official catalogs and reputable agencies over blogs or social posts.\n"
     "- Match the claim's date/place/magnitude when relevant; do not infer beyond the given sources.\n\n"
-    "- You MUST respond **entirely** in LANG_HINT language, never translate to another language.\n"
-    "- If LANG_HINT is 'fr', response MUST be fully in French.\n"
-    "- If LANG_HINT is 'ar', response MUST be fully in Arabic.\n"
-    "- If LANG_HINT is 'en', response MUST be fully in English.\n"
 
-    "LANG POLICY:\n"
-    "• You MUST write **all free-text fields** in the language specified by LANG_HINT below.\n"
-    "• Keep JSON KEYS EXACTLY as: \"الحالة\", \"talk\", \"sources\" (do not translate keys).\n"
-    "• The value of \"الحالة\" must be localized to LANG_HINT "
-    "(Arabic: حقيقي/كاذب/غير مؤكد; English: True/False/Uncertain).\n"
-    "• In the closing paragraph label inside \"talk\", use a localized label in LANG_HINT "
-    "(Arabic: \"روابط رئيسية:\"; English: \"Key sources:\").\n\n"
+    "LANGUAGE POLICY:\n"
+    "- You MUST respond **entirely** in the language specified by LANG_HINT.\n"
+    "- Do NOT switch to another language or translate.\n"
+    "- Examples:\n"
+    "   • If LANG_HINT = 'fr' → respond fully in French.\n"
+    "   • If LANG_HINT = 'ar' → respond fully in Arabic.\n"
+    "   • If LANG_HINT = 'en' → respond fully in English.\n"
+    "   • If LANG_HINT = 'es' → respond fully in Spanish.\n\n"
+
+    "FORMAT RULES:\n"
+    "• You MUST write all free-text fields strictly in LANG_HINT language.\n"
+    "• JSON keys must remain EXACTLY as: \"الحالة\", \"talk\", \"sources\" (do not translate keys).\n"
+    "• The value of \"الحالة\" must be localized according to LANG_HINT:\n"
+    "   - Arabic: حقيقي / كاذب / غير مؤكد\n"
+    "   - English: True / False / Uncertain\n"
+    "   - French: Vrai / Faux / Incertain\n"
+    "   - Spanish: Verdadero / Falso / Incierto\n"
+    "• Inside \"talk\": end the explanation with a localized label for sources:\n"
+    "   - Arabic: روابط رئيسية:\n"
+    "   - English: Key sources:\n"
+    "   - French: Sources principales:\n"
+    "   - Spanish: Fuentes principales:\n\n"
+
     "RESPONSE FORMAT (JSON ONLY — no extra text):\n"
     "{\n"
-    '  "الحالة": "<Localized verdict>",\n'
-    '  "talk": "<Explanation paragraph ~350 words>",\n'
-    '  "sources": [ {"title":"<title>","url":"<url>"}, ... ]\n'
-    "}\n"
-    "Rules:\n"
-    "1) Output STRICTLY valid JSON (UTF-8). No commentary before/after.\n"
-    "2) If claim is uncertain, keep 'sources' empty.\n"
-    "3) If verdict is True, return ALL confirming sources (no fixed limit)."
+    '  \"الحالة\": \"<Localized verdict>\",\n'
+    '  \"talk\": \"<Explanation paragraph ~350 words in LANG_HINT>\",\n'
+    '  \"sources\": [ {\"title\": \"<title>\", \"url\": \"<url>\"}, ... ]\n'
+    "}\n\n"
+
+    "FINAL RULES:\n"
+    "1) Output STRICTLY valid JSON (UTF-8). No extra commentary before or after.\n"
+    "2) If the claim is Uncertain → keep 'sources' as an empty array [].\n"
+    "3) If the claim is True → include ALL confirming sources (no fixed limit).\n"
+    "4) Do not fabricate URLs or titles; use only provided sources.\n"
 )
+
 
 def check_fact_simple(claim_text: str, k_sources: int = 5) -> dict:
     try:
