@@ -59,7 +59,11 @@ FACT_PROMPT_SYSTEM = (
     "- If evidence is insufficient, conflicting, or off-topic, the verdict must be: Uncertain.\n"
     "- Prefer official catalogs and reputable agencies over blogs or social posts.\n"
     "- Match the claim's date/place/magnitude when relevant; do not infer beyond the given sources.\n\n"
-    "- answer in langauge of the query (LANG_HINT).\n\n"
+    "- You MUST respond **entirely** in LANG_HINT language, never translate to another language.\n"
+    "- If LANG_HINT is 'fr', response MUST be fully in French.\n"
+    "- If LANG_HINT is 'ar', response MUST be fully in Arabic.\n"
+    "- If LANG_HINT is 'en', response MUST be fully in English.\n"
+
     "LANG POLICY:\n"
     "• You MUST write **all free-text fields** in the language specified by LANG_HINT below.\n"
     "• Keep JSON KEYS EXACTLY as: \"الحالة\", \"talk\", \"sources\" (do not translate keys).\n"
@@ -70,7 +74,7 @@ FACT_PROMPT_SYSTEM = (
     "RESPONSE FORMAT (JSON ONLY — no extra text):\n"
     "{\n"
     '  "الحالة": "<Localized verdict>",\n'
-    '  "talk": "<Explanation paragraph ~300 words>",\n'
+    '  "talk": "<Explanation paragraph ~350 words>",\n'
     '  "sources": [ {"title":"<title>","url":"<url>"}, ... ]\n'
     "}\n"
     "Rules:\n"
