@@ -82,7 +82,8 @@ FACT_PROMPT_SYSTEM = (
     "   • If LANG_HINT = 'fr' → respond fully in French.\n"
     "   • If LANG_HINT = 'ar' → respond fully in Arabic.\n"
     "   • If LANG_HINT = 'en' → respond fully in English.\n"
-    "   • If LANG_HINT = 'es' → respond fully in Spanish.\n\n"
+    "   • If LANG_HINT = 'es' → respond fully in Spanish.\n"
+    "   • If LANG_HINT = 'cs' → respond fully in Czech.\n\n"
 
     "FORMAT RULES:\n"
     "• You MUST write all free-text fields strictly in LANG_HINT language.\n"
@@ -92,11 +93,13 @@ FACT_PROMPT_SYSTEM = (
     "   - English: True / False / Uncertain\n"
     "   - French: Vrai / Faux / Incertain\n"
     "   - Spanish: Verdadero / Falso / Incierto\n"
+    "   - Czech: Pravda / Nepravda / Nejisté\n"
     "• Inside \"talk\": end the explanation with a localized label for sources:\n"
     "   - Arabic: روابط رئيسية:\n"
     "   - English: Key sources:\n"
     "   - French: Sources principales:\n"
-    "   - Spanish: Fuentes principales:\n\n"
+    "   - Spanish: Fuentes principales:\n"
+    "   - Czech: Klíčové zdroje:\n\n"
 
     "RESPONSE FORMAT (JSON ONLY — no extra text):\n"
     "{\n"
@@ -120,15 +123,25 @@ def check_fact_simple(claim_text: str, k_sources: int = 5) -> dict:
 
         results = []
         for domain in NEWS_AGENCIES:
-            domain_results = _fetch_serp(f"{claim_text} site:{domain}", num=2)
+            domain_results = _fetch_serp(f"{claim_text} site:{domain}", extra={"hl": lang} if lang else None, num=2)
             results += domain_results
-        google_results = _fetch_serp(claim_text, num=k_sources)
+        google_results = _fetch_serp(claim_text, extra={"hl": lang} if lang else None, num=k_sources)
         results += google_results
 
         print(f"🔎 Total combined results: {len(results)}")
 
         if not results:
-            return {"case": "غير مؤكد", "talk": "لم يتم العثور على نتائج بحث.", "sources": []}
+            no_results_by_lang = {
+                "ar": "لم يتم العثور على نتائج بحث.",
+                "en": "No search results were found.",
+                "fr": "Aucun résultat de recherche trouvé.",
+                "es": "No se encontraron resultados de búsqueda.",
+                "cs": "Nebyly nalezeny žádné výsledky vyhledávání.",
+                "de": "Es wurden keine Suchergebnisse gefunden.",
+                "tr": "Arama sonuçları bulunamadı.",
+                "ru": "Результаты поиска не найдены.",
+            }
+            return {"case": "غير مؤكد", "talk": no_results_by_lang.get(lang, no_results_by_lang["en"]), "sources": []}
 
         def clip(s: str, n: int) -> str:
             return s.strip() if len(s) <= n else s[:n] + "…"
@@ -171,11 +184,36 @@ CURRENT_DATE: {datetime.now().strftime('%Y-%m-%d')}
         talk = parsed.get("talk", "")
         sources = parsed.get("sources", [])
 
-        if case == "غير مؤكد" or case.lower() == "uncertain":
+        uncertain_terms = {
+            "ar": {"غير مؤكد"},
+            "en": {"uncertain"},
+            "fr": {"incertain"},
+            "es": {"incierto"},
+            "cs": {"nejisté", "nejiste", "nejistá"},
+            "de": {"unsicher"},
+            "tr": {"belirsiz"},
+            "ru": {"неопределенно", "неопределённо", "неопределенный"},
+        }
+        lowered = case.strip().lower()
+        if lowered in {t for s in uncertain_terms.values() for t in s}:
             sources = []
 
         return {"case": case, "talk": talk, "sources": sources}
 
     except Exception as e:
         print("❌ Error:", traceback.format_exc())
-        return {"case": "غير مؤكد", "talk": f"⚠️ حدث خطأ أثناء التحقق: {e}", "sources": []}
+        error_by_lang = {
+            "ar": "⚠️ حدث خطأ أثناء التحقق.",
+            "en": "⚠️ An error occurred during fact-checking.",
+            "fr": "⚠️ Une erreur s'est produite lors de la vérification des faits.",
+            "es": "⚠️ Se produjo un error durante la verificación de hechos.",
+            "cs": "⚠️ Během ověřování faktů došlo k chybě.",
+            "de": "⚠️ Bei der Faktenprüfung ist ein Fehler aufgetreten.",
+            "tr": "⚠️ Doğrulama sırasında bir hata oluştu.",
+            "ru": "⚠️ Во время проверки фактов произошла ошибка.",
+        }
+        try:
+            lang = _lang_hint_from_claim(claim_text)
+        except Exception:
+            lang = "en"
+        return {"case": "غير مؤكد", "talk": error_by_lang.get(lang, error_by_lang["en"]), "sources": []}
