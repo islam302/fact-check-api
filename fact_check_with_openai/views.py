@@ -14,9 +14,22 @@ from .utils import check_fact_simple
 class FactCheckWithOpenaiView(View):
     """
     POST /fact_check_with_openai/
-    Body: { "query": "<claim text>" }
+    Body: { 
+      "query": "<claim text>",
+      "generate_news": true/false (optional, default: false),
+      "preserve_sources": true/false (optional, default: false),
+      "generate_tweet": true/false (optional, default: false)
+    }
     Response:
-      { ok: true, query: str, case: str, talk: str, sources: [ {title, url}, ... ] }
+      { 
+        ok: true, 
+        query: str, 
+        case: str, 
+        talk: str, 
+        sources: [ {title, url}, ... ],
+        news_article: str (only if generate_news=true and case is uncertain/false),
+        x_tweet: str (only if generate_tweet=true)
+      }
     """
 
     def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
@@ -38,7 +51,13 @@ class FactCheckWithOpenaiView(View):
                 )
 
             # ✅ نمرّر k_sources (الموحد) بدل أي اسم قديم
-            result = check_fact_simple(query, k_sources=10)
+            # ✅ نمرّر generate_news إذا كان مطلوباً
+            # ✅ نمرّر preserve_sources إذا كان مطلوباً
+            # ✅ نمرّر generate_tweet إذا كان مطلوباً
+            generate_news = payload.get("generate_news", False)
+            preserve_sources = payload.get("preserve_sources", False)
+            generate_tweet = payload.get("generate_tweet", False)
+            result = check_fact_simple(query, k_sources=10, generate_news=generate_news, preserve_sources=preserve_sources, generate_tweet=generate_tweet)
 
             # ✅ نعيد المفاتيح الموحدة
             return JsonResponse(
@@ -48,6 +67,8 @@ class FactCheckWithOpenaiView(View):
                     "case": result.get("case"),
                     "talk": result.get("talk"),
                     "sources": result.get("sources", []),
+                    "news_article": result.get("news_article"),
+                    "x_tweet": result.get("x_tweet"),
                 },
                 status=200,
             )

@@ -6,6 +6,481 @@ from datetime import datetime
 
 load_dotenv()
 
+def translate_date_references(text: str) -> str:
+    """
+    ترجمة المراجع الزمنية في النص إلى تواريخ محددة
+    مثل: "اليوم" -> التاريخ الحالي
+    """
+    if not text:
+        return text
+    
+    # الحصول على التاريخ الحالي
+    today = datetime.now()
+    today_arabic = today.strftime('%Y-%m-%d')
+    today_formatted = today.strftime('%d/%m/%Y')
+    
+    # قائمة بالكلمات التي تشير إلى "اليوم" في لغات مختلفة
+    today_words = {
+        'ar': ['اليوم', 'هذا اليوم', 'اليوم الحالي'],
+        'en': ['today', 'this day'],
+        'fr': ['aujourd\'hui', 'ce jour'],
+        'es': ['hoy', 'este día'],
+        'de': ['heute', 'dieser tag'],
+        'tr': ['bugün', 'bu gün'],
+        'ru': ['сегодня', 'этот день'],
+        'cs': ['dnes', 'dnešní den']
+    }
+    
+    # استبدال كلمة "اليوم" بالتاريخ الحالي
+    modified_text = text
+    
+    for language, words in today_words.items():
+        for word in words:
+            # البحث عن الكلمة مع مراعاة الحالة (case-insensitive)
+            import re
+            pattern = re.compile(re.escape(word), re.IGNORECASE)
+            modified_text = pattern.sub(today_arabic, modified_text)
+    
+    return modified_text
+
+def generate_professional_news_article(claim_text: str, sources: List[Dict], lang: str = "ar") -> str:
+    """
+    Generate a professional news article when fact-check result is uncertain
+    Uses available sources to create a balanced, journalistic piece
+    """
+    
+    # Professional journalism prompt with complete standards
+    JOURNALISM_PROMPT = f"""
+You are a senior editor-in-chief and Pulitzer Prize-winning journalist with 20+ years of experience. You are writing for a major international news organization with the highest journalistic standards.
+
+**COMPLETE JOURNALISM ROLES & EXPERTISE:**
+1. **Editor-in-Chief**: Oversee editorial standards and journalistic integrity
+2. **Investigative Reporter**: Deep-dive into complex, uncertain situations
+3. **Breaking News Editor**: Handle developing stories with incomplete information
+4. **Fact-Checker**: Distinguish between verified and unverified claims
+5. **News Analyst**: Provide context for uncertain situations
+6. **Editorial Writer**: Craft balanced coverage of controversial topics
+7. **Public Interest Journalist**: Focus on what the public needs to know
+8. **Crisis Communication Specialist**: Handle sensitive, uncertain information
+9. **Data Journalist**: Present incomplete data responsibly
+10. **Watchdog Reporter**: Monitor and report on uncertain developments
+11. **Community Journalist**: Serve public interest in uncertain times
+12. **International Correspondent**: Cover global events with cultural sensitivity
+13. **Political Reporter**: Navigate complex political situations
+14. **Science Journalist**: Translate complex information for general audience
+15. **Ethics Editor**: Ensure all content meets highest ethical standards
+
+**COMPLETE JOURNALISM STANDARDS:**
+- **Accuracy**: Verify all facts before publication, double-check sources
+- **Objectivity**: Present multiple perspectives fairly, avoid bias
+- **Balance**: Include all relevant viewpoints, give equal weight to different sides
+- **Transparency**: Cite sources clearly, acknowledge limitations
+- **Ethics**: Respect privacy, avoid harm, consider public interest
+- **Clarity**: Write for general audience understanding, avoid jargon
+- **Timeliness**: Address current relevance and urgency
+- **Completeness**: Cover all important aspects, provide full context
+- **Independence**: Maintain editorial independence from external pressures
+- **Accountability**: Take responsibility for reporting, correct errors promptly
+- **Fairness**: Treat all subjects fairly, avoid discrimination
+- **Responsibility**: Consider public impact, avoid sensationalism
+
+**PROFESSIONAL WRITING STYLE:**
+- Use inverted pyramid structure (most important info first)
+- Write in third person, past tense
+- Use active voice when possible
+- Include direct quotes when available
+- Provide context and background
+- Maintain neutral, professional tone
+- Avoid speculation and unverified claims
+- Include relevant statistics and data
+- Use precise, clear language
+- Avoid unnecessary adjectives and adverbs
+- Maintain consistent terminology
+- Use proper attribution for all claims
+
+**LANGUAGE POLICY:**
+- Write ENTIRELY in {lang.upper()} language
+- Use professional journalistic terminology
+- Maintain consistency in terminology
+- Adapt cultural context appropriately
+- Use formal, respectful language
+- Avoid colloquialisms and slang
+
+**COMPLETE ARTICLE STRUCTURE:**
+1. **Headline**: Clear, informative, attention-grabbing (avoid sensationalism)
+2. **Lead Paragraph**: Who, what, when, where, why, how (5W+H)
+3. **Body Paragraphs**: Supporting details, quotes, context, analysis
+4. **Conclusion**: Summary, implications, next steps
+
+**RESPONSE FORMAT:**
+Write a professional news article (100-200 words) that meets the highest journalistic standards.
+Focus on transparency, accuracy, and public interest. Maintain complete journalistic integrity.
+"""
+
+    # Prepare sources context
+    if not sources:
+        sources_context = "No specific sources available for this topic."
+    else:
+        sources_context = "\n\n".join([
+            f"**Source {i+1}:**\n"
+            f"Title: {source.get('title', 'N/A')}\n"
+            f"URL: {source.get('url', 'N/A')}\n"
+            f"Snippet: {source.get('snippet', 'N/A')}"
+            for i, source in enumerate(sources[:5])  # Limit to 5 sources
+        ])
+    
+    # Create the user message
+    user_message = f"""
+**ORIGINAL CLAIM/TOPIC:**
+{claim_text}
+
+**AVAILABLE SOURCES:**
+{sources_context}
+
+**SITUATION CONTEXT:**
+This is an UNCERTAIN fact-check result. The claim could not be definitively verified as true or false due to:
+- Insufficient evidence
+- Conflicting information
+- Lack of reliable sources
+- Incomplete data
+- Ongoing developments
+
+**PROFESSIONAL JOURNALISM INSTRUCTIONS:**
+Write a comprehensive news article that meets the highest journalistic standards:
+
+1. **ACCURACY**: Only report verified information, double-check all facts
+2. **OBJECTIVITY**: Present multiple perspectives fairly, avoid bias
+3. **BALANCE**: Include all relevant viewpoints, give equal weight to different sides
+4. **TRANSPARENCY**: Clearly distinguish between what is known and what remains uncertain
+5. **ETHICS**: Respect privacy, avoid harm, consider public interest
+6. **CLARITY**: Write for general audience understanding, avoid jargon
+7. **COMPLETENESS**: Cover all important aspects, provide full context
+8. **RESPONSIBILITY**: Consider public impact, avoid sensationalism
+
+**PROFESSIONAL WRITING APPROACH:**
+- Use inverted pyramid structure (most important info first)
+- Start with what IS known and verified
+- Clearly state what remains unclear or uncertain
+- Use phrases like "according to available information", "sources indicate", "reports suggest"
+- Include appropriate disclaimers about incomplete information
+- Focus on the public interest and what people need to know
+- Maintain professional skepticism throughout
+- Use third person, past tense, active voice
+- Include proper attribution for all claims
+
+**REQUIREMENTS:**
+- Length: 250-350 words (strict requirement - must be at least 250 words)
+- Language: {lang.upper()}
+- Style: Professional journalism meeting highest standards
+- Tone: Neutral, measured, transparent, authoritative
+- Structure: Complete news article with headline, lead, body, conclusion
+- Quality: Pulitzer Prize-level journalism
+- Content: Comprehensive coverage with detailed analysis and context
+- IMPORTANT: Write a detailed, comprehensive article that thoroughly covers all aspects of the story. Include extensive background, multiple perspectives, detailed analysis, and comprehensive context. The article must be substantial and informative, not brief or superficial.
+"""
+
+    try:
+        print("📰 Generating professional news article...")
+        
+        response = client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[
+                {"role": "system", "content": JOURNALISM_PROMPT},
+                {"role": "user", "content": user_message}
+            ],
+            temperature=0.1,  # Very low temperature for factual, measured content
+            max_tokens=800,   # Allow enough tokens for 250-350 words
+            top_p=0.9,        # Focus on most likely responses
+            frequency_penalty=0.1,  # Slight penalty to avoid repetition
+            presence_penalty=0.1    # Encourage diverse vocabulary
+        )
+        
+        article = response.choices[0].message.content.strip()
+        print("✅ News article generated successfully")
+        return article
+        
+    except Exception as e:
+        print(f"❌ Error generating news article: {e}")
+        error_messages = {
+            "ar": "عذراً، حدث خطأ أثناء كتابة المقال الإخباري. يرجى المحاولة مرة أخرى.",
+            "en": "Sorry, an error occurred while writing the news article. Please try again.",
+            "fr": "Désolé, une erreur s'est produite lors de la rédaction de l'article de presse. Veuillez réessayer.",
+            "es": "Lo siento, ocurrió un error al escribir el artículo de noticias. Por favor, inténtalo de nuevo.",
+        }
+        return error_messages.get(lang, error_messages["en"])
+
+def generate_professional_news_article_from_analysis(claim_text: str, case: str, talk: str, sources: List[Dict], lang: str = "ar") -> str:
+    """
+    Generate a professional news article based on fact-check analysis and sources
+    Uses the analysis (talk) and sources to create a balanced, journalistic piece
+    """
+    
+    # Professional journalism prompt for fact-check analysis
+    FACT_CHECK_NEWS_PROMPT = f"""
+You are a senior editor-in-chief and Pulitzer Prize-winning journalist with 20+ years of experience. You are writing for a major international news organization with the highest journalistic standards.
+
+**COMPLETE JOURNALISM ROLES & EXPERTISE:**
+1. **Editor-in-Chief**: Oversee editorial standards and journalistic integrity
+2. **Fact-Checking Specialist**: Present verified information clearly
+3. **Investigative Reporter**: Deep-dive into complex, uncertain situations
+4. **Breaking News Editor**: Handle developing stories with incomplete information
+5. **News Analyst**: Provide context for uncertain situations
+6. **Public Interest Journalist**: Focus on what the public needs to know
+7. **Crisis Communication Specialist**: Handle sensitive, uncertain information
+8. **Ethics Editor**: Ensure all content meets highest ethical standards
+
+**FACT-CHECK NEWS STANDARDS:**
+- **Accuracy**: Base article on the fact-check analysis, not the original claim
+- **Objectivity**: Present the fact-check result clearly and objectively
+- **Transparency**: Clearly state what was found and what remains unclear
+- **Context**: Provide background and historical perspective
+- **Balance**: Include all relevant viewpoints fairly
+- **Responsibility**: Consider public impact of reporting
+- **Clarity**: Write for general audience understanding
+- **Completeness**: Cover all important aspects of the fact-check
+
+**WRITING APPROACH FOR FACT-CHECK NEWS:**
+- Start with the fact-check result (uncertain/false/true)
+- Explain what was investigated and what was found
+- Present the analysis clearly and objectively
+- Include relevant context and background
+- Use the available sources to support the analysis
+- Maintain professional skepticism throughout
+- Focus on what is known vs. what is uncertain
+- Avoid speculation beyond the fact-check analysis
+
+**LANGUAGE POLICY:**
+- Write ENTIRELY in {lang.upper()} language
+- Use professional journalistic terminology
+- Maintain consistency in terminology
+- Adapt cultural context appropriately
+- Use formal, respectful language
+
+**ARTICLE STRUCTURE:**
+1. **Headline**: Clear, informative, based on fact-check result
+2. **Lead Paragraph**: Fact-check result, what was investigated, key findings
+3. **Body Paragraphs**: Detailed analysis, context, sources, implications
+4. **Conclusion**: Summary of findings and what remains unclear
+
+**RESPONSE FORMAT:**
+Write a professional news article (100-200 words) that reports on the fact-check investigation.
+Base the article on the analysis provided, not on confirming or denying the original claim.
+Focus on transparency about what was found and what remains uncertain.
+"""
+
+    # Prepare sources context
+    if not sources:
+        sources_context = "No specific sources available for this investigation."
+    else:
+        sources_context = "\n\n".join([
+            f"**Source {i+1}:**\n"
+            f"Title: {source.get('title', 'N/A')}\n"
+            f"URL: {source.get('url', 'N/A')}\n"
+            f"Snippet: {source.get('snippet', 'N/A')}"
+            for i, source in enumerate(sources[:5])  # Limit to 5 sources
+        ])
+    
+    # Create the user message
+    user_message = f"""
+**FACT-CHECK INVESTIGATION:**
+Original Claim: {claim_text}
+Fact-Check Result: {case}
+Analysis: {talk}
+
+**AVAILABLE SOURCES:**
+{sources_context}
+
+**INSTRUCTIONS:**
+Write a professional news article that reports on this fact-check investigation:
+
+1. **Start with the fact-check result** - clearly state what was found
+2. **Explain the investigation** - what was looked into and how
+3. **Present the analysis** - what the fact-checkers found
+4. **Include context** - relevant background information
+5. **Use sources** - reference the available sources appropriately
+6. **Be transparent** - clearly state what is known vs. uncertain
+7. **Avoid speculation** - stick to the fact-check analysis
+
+**IMPORTANT:**
+- Do NOT confirm or deny the original claim
+- Report on the fact-check process and findings
+- Base the article on the analysis provided
+- Maintain journalistic objectivity
+- Focus on transparency and accuracy
+
+**REQUIREMENTS:**
+- Length: 100-200 words (strict requirement)
+- Language: {lang.upper()}
+- Style: Professional journalism reporting on fact-check
+- Tone: Objective, transparent, informative
+- Structure: News article format with headline, lead, body, conclusion
+"""
+
+    try:
+        print("📰 Generating fact-check news article...")
+        
+        response = client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[
+                {"role": "system", "content": FACT_CHECK_NEWS_PROMPT},
+                {"role": "user", "content": user_message}
+            ],
+            temperature=0.1,  # Very low temperature for factual, measured content
+            max_tokens=400,   # Allow enough tokens for 100-200 words
+            top_p=0.9,        # Focus on most likely responses
+            frequency_penalty=0.1,  # Slight penalty to avoid repetition
+            presence_penalty=0.1    # Encourage diverse vocabulary
+        )
+        
+        article = response.choices[0].message.content.strip()
+        print("✅ Fact-check news article generated successfully")
+        return article
+        
+    except Exception as e:
+        print(f"❌ Error generating fact-check news article: {e}")
+        error_messages = {
+            "ar": "عذراً، حدث خطأ أثناء كتابة المقال الإخباري. يرجى المحاولة مرة أخرى.",
+            "en": "Sorry, an error occurred while writing the news article. Please try again.",
+            "fr": "Désolé, une erreur s'est produite lors de la rédaction de l'article de presse. Veuillez réessayer.",
+            "es": "Lo siento, ocurrió un error al escribir el artículo de noticias. Por favor, inténtalo de nuevo.",
+        }
+        return error_messages.get(lang, error_messages["en"])
+
+def generate_x_tweet(claim_text: str, case: str, talk: str, sources: List[Dict], lang: str = "ar") -> str:
+    """
+    Generate a professional X (Twitter) tweet based on fact-check results
+    Optimized for X platform with proper formatting and engagement
+    """
+    
+    # X/Twitter specific prompt
+    X_TWEET_PROMPT = f"""
+You are a professional social media journalist and X (Twitter) content creator with expertise in:
+
+**X PLATFORM EXPERTISE:**
+1. **Social Media Journalist**: Create engaging, accurate news content for X
+2. **Viral Content Creator**: Understand what drives engagement on X
+3. **Fact-Checking Specialist**: Present verified information clearly
+4. **Crisis Communication**: Handle sensitive information responsibly
+5. **Community Manager**: Engage audiences while maintaining credibility
+6. **Digital Storyteller**: Tell compelling stories in limited characters
+7. **Breaking News Reporter**: Handle urgent, time-sensitive information
+8. **Public Interest Communicator**: Serve public interest on social media
+
+**X PLATFORM REQUIREMENTS:**
+- Maximum 280 characters (strict limit)
+- Use hashtags strategically (2-3 relevant hashtags)
+- Include emojis appropriately for engagement
+- Write for mobile-first audience
+- Use clear, concise language
+- Include call-to-action when appropriate
+- Maintain professional credibility
+- Respect X community guidelines
+
+**TWEET STRUCTURE FOR FACT-CHECKING:**
+1. **Hook**: Attention-grabbing opening
+2. **Fact**: Clear statement of the fact-check result
+3. **Context**: Brief explanation or key detail
+4. **Hashtags**: Relevant, trending hashtags
+5. **Emojis**: Strategic use for engagement and clarity
+
+**LANGUAGE POLICY:**
+- Write ENTIRELY in {lang.upper()} language
+- Use professional but engaging tone
+- Adapt to social media communication style
+- Maintain journalistic credibility
+- Use appropriate emojis for the language/culture
+
+**ENGAGEMENT STRATEGY:**
+- Start with compelling hook
+- Use numbers/statistics when available
+- Include relevant hashtags
+- Use emojis strategically
+- End with clear conclusion or call-to-action
+- Maintain professional credibility
+
+**RESPONSE FORMAT:**
+Generate a single, professional X tweet (max 280 characters) that:
+- Clearly states the fact-check result
+- Engages the audience appropriately
+- Maintains journalistic credibility
+- Uses relevant hashtags and emojis
+- Respects X platform guidelines
+"""
+
+    # Prepare context based on fact-check result
+    if case.lower() in {"حقيقي", "true", "vrai", "verdadero", "pravda"}:
+        result_emoji = "✅"
+        result_text = "حقيقي" if lang == "ar" else "TRUE"
+        tone = "confirming"
+    elif case.lower() in {"كاذب", "false", "faux", "falso", "nepravda"}:
+        result_emoji = "❌"
+        result_text = "كاذب" if lang == "ar" else "FALSE"
+        tone = "debunking"
+    else:  # uncertain
+        result_emoji = "⚠️"
+        result_text = "غير مؤكد" if lang == "ar" else "UNCERTAIN"
+        tone = "uncertain"
+
+    # Create the user message
+    user_message = f"""
+**FACT-CHECK RESULT:**
+Claim: {claim_text}
+Result: {case} ({result_text})
+Analysis: {talk}
+
+**SOURCES:**
+{len(sources)} sources available
+
+**INSTRUCTIONS:**
+Create a professional X tweet that:
+1. Clearly communicates the fact-check result
+2. Engages the audience appropriately
+3. Uses relevant hashtags and emojis
+4. Maintains journalistic credibility
+5. Respects X platform guidelines
+6. Stays within 280 character limit
+
+**TONE:** {tone}
+**LANGUAGE:** {lang.upper()}
+**PLATFORM:** X (Twitter)
+**CHARACTER LIMIT:** 280 characters maximum
+"""
+
+    try:
+        print("🐦 Generating X tweet...")
+        
+        response = client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[
+                {"role": "system", "content": X_TWEET_PROMPT},
+                {"role": "user", "content": user_message}
+            ],
+            temperature=0.3,  # Balanced creativity and accuracy
+            max_tokens=150,   # Enough for tweet + some buffer
+            top_p=0.9,
+            frequency_penalty=0.1,
+            presence_penalty=0.1
+        )
+        
+        tweet = response.choices[0].message.content.strip()
+        
+        # Ensure tweet is within character limit
+        if len(tweet) > 280:
+            tweet = tweet[:277] + "..."
+        
+        print("✅ X tweet generated successfully")
+        return tweet
+        
+    except Exception as e:
+        print(f"❌ Error generating X tweet: {e}")
+        error_messages = {
+            "ar": "⚠️ حدث خطأ أثناء إنشاء التغريدة. يرجى المحاولة مرة أخرى.",
+            "en": "⚠️ An error occurred while generating the tweet. Please try again.",
+            "fr": "⚠️ Une erreur s'est produite lors de la génération du tweet. Veuillez réessayer.",
+            "es": "⚠️ Ocurrió un error al generar el tweet. Por favor, inténtalo de nuevo.",
+        }
+        return error_messages.get(lang, error_messages["en"])
+
 SERPAPI_KEY = os.getenv("SERPAPI_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
@@ -94,12 +569,6 @@ FACT_PROMPT_SYSTEM = (
     "   - French: Vrai / Faux / Incertain\n"
     "   - Spanish: Verdadero / Falso / Incierto\n"
     "   - Czech: Pravda / Nepravda / Nejisté\n"
-    "• Inside \"talk\": end the explanation with a localized label for sources:\n"
-    "   - Arabic: روابط رئيسية:\n"
-    "   - English: Key sources:\n"
-    "   - French: Sources principales:\n"
-    "   - Spanish: Fuentes principales:\n"
-    "   - Czech: Klíčové zdroje:\n\n"
 
     "RESPONSE FORMAT (JSON ONLY — no extra text):\n"
     "{\n"
@@ -116,16 +585,18 @@ FACT_PROMPT_SYSTEM = (
 )
 
 
-def check_fact_simple(claim_text: str, k_sources: int = 5) -> dict:
+def check_fact_simple(claim_text: str, k_sources: int = 5, generate_news: bool = False, preserve_sources: bool = False, generate_tweet: bool = False) -> dict:
     try:
-        print(f"🧠 Fact-checking: {claim_text}")
-        lang = _lang_hint_from_claim(claim_text)
+        # ترجمة المراجع الزمنية في النص
+        processed_claim = translate_date_references(claim_text)
+        print(f"🧠 Fact-checking: {processed_claim}")
+        lang = _lang_hint_from_claim(processed_claim)
 
         results = []
         for domain in NEWS_AGENCIES:
-            domain_results = _fetch_serp(f"{claim_text} site:{domain}", extra={"hl": lang} if lang else None, num=2)
+            domain_results = _fetch_serp(f"{processed_claim} site:{domain}", extra={"hl": lang} if lang else None, num=2)
             results += domain_results
-        google_results = _fetch_serp(claim_text, extra={"hl": lang} if lang else None, num=k_sources)
+        google_results = _fetch_serp(processed_claim, extra={"hl": lang} if lang else None, num=k_sources)
         results += google_results
 
         print(f"🔎 Total combined results: {len(results)}")
@@ -141,7 +612,7 @@ def check_fact_simple(claim_text: str, k_sources: int = 5) -> dict:
                 "tr": "Arama sonuçları bulunamadı.",
                 "ru": "Результаты поиска не найдены.",
             }
-            return {"case": "غير مؤكد", "talk": no_results_by_lang.get(lang, no_results_by_lang["en"]), "sources": []}
+            return {"case": "غير مؤكد", "talk": no_results_by_lang.get(lang, no_results_by_lang["en"]), "sources": [], "news_article": None}
 
         def clip(s: str, n: int) -> str:
             return s.strip() if len(s) <= n else s[:n] + "…"
@@ -157,7 +628,7 @@ LANG_HINT: {lang}
 CURRENT_DATE: {datetime.now().strftime('%Y-%m-%d')}
 
 الادعاء:
-{claim_text}
+{processed_claim}
 
 السياق:
 {context}
@@ -195,10 +666,43 @@ CURRENT_DATE: {datetime.now().strftime('%Y-%m-%d')}
             "ru": {"неопределенно", "неопределённо", "неопределенный"},
         }
         lowered = case.strip().lower()
-        if lowered in {t for s in uncertain_terms.values() for t in s}:
-            sources = []
+        is_uncertain = lowered in {t for s in uncertain_terms.values() for t in s}
+        
+        # Generate professional news article if requested and result is uncertain or false
+        news_article = ""
+        if generate_news and (is_uncertain or lowered in {"كاذب", "false", "faux", "falso", "nepravda", "falsch", "yanlış", "ложь", "nepravda"}):
+            print("📰 Generating professional news article as requested...")
+            # Use the fact-check analysis (talk) and sources for news generation
+            news_article = generate_professional_news_article_from_analysis(processed_claim, case, talk, results, lang)
+        elif generate_news and lowered in {"حقيقي", "true", "vrai", "verdadero", "pravda"}:
+            print("ℹ️ News article not generated for true cases")
+        
+        # Generate X tweet only if requested and result is uncertain or false
+        x_tweet = ""
+        if generate_tweet and (is_uncertain or lowered in {"كاذب", "false", "faux", "falso", "nepravda", "falsch", "yanlış", "ложь", "nepravda"}):
+            print("🐦 Generating X tweet as requested...")
+            # Use the original search results for tweet generation
+            x_tweet = generate_x_tweet(processed_claim, case, talk, results, lang)
+        elif generate_tweet and lowered in {"حقيقي", "true", "vrai", "verdadero", "pravda"}:
+            print("ℹ️ X tweet not generated for true cases")
+        
+        # Clear sources for uncertain results unless explicitly requested to preserve them
+        # But if preserve_sources is true, use the original search results instead of AI sources
+        if is_uncertain:
+            if preserve_sources:
+                # Use original search results when preserving sources
+                sources = [{"title": r.get("title", ""), "url": r.get("link", ""), "snippet": r.get("snippet", "")} for r in results]
+            else:
+                # Clear sources as per original logic
+                sources = []
 
-        return {"case": case, "talk": talk, "sources": sources}
+        return {
+            "case": case, 
+            "talk": talk, 
+            "sources": sources,
+            "news_article": news_article if generate_news else None,
+            "x_tweet": x_tweet if generate_tweet else None
+        }
 
     except Exception as e:
         print("❌ Error:", traceback.format_exc())
@@ -213,7 +717,7 @@ CURRENT_DATE: {datetime.now().strftime('%Y-%m-%d')}
             "ru": "⚠️ Во время проверки фактов произошла ошибка.",
         }
         try:
-            lang = _lang_hint_from_claim(claim_text)
+            lang = _lang_hint_from_claim(processed_claim if 'processed_claim' in locals() else claim_text)
         except Exception:
             lang = "en"
-        return {"case": "غير مؤكد", "talk": error_by_lang.get(lang, error_by_lang["en"]), "sources": []}
+        return {"case": "غير مؤكد", "talk": error_by_lang.get(lang, error_by_lang["en"]), "sources": [], "news_article": None}
