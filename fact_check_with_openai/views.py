@@ -7,7 +7,7 @@ from django.http import JsonResponse, HttpRequest, HttpResponse
 import json
 import traceback
 
-from .utils import check_fact_simple
+from .utils import check_fact_simple, generate_analytical_news_article
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -27,7 +27,7 @@ class FactCheckWithOpenaiView(View):
         case: str, 
         talk: str, 
         sources: [ {title, url}, ... ],
-        news_article: str (only if generate_news=true and case is uncertain/false),
+        news_article: str (only if generate_news=true),
         x_tweet: str (only if generate_tweet=true)
       }
     """
@@ -69,6 +69,75 @@ class FactCheckWithOpenaiView(View):
                     "sources": result.get("sources", []),
                     "news_article": result.get("news_article"),
                     "x_tweet": result.get("x_tweet"),
+                },
+                status=200,
+            )
+
+        except Exception as e:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "error": str(e),
+                    "trace": traceback.format_exc(),
+                },
+                status=500,
+            )
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class AnalyticalNewsView(View):
+    """
+    POST /fact_check_with_openai/analytical_news/
+    Body: { 
+      "headline": "<news headline>",
+      "analysis": "<fact-check analysis>",
+      "lang": "ar" (optional, default: "ar")
+    }
+    Response:
+      { 
+        ok: true, 
+        headline: str, 
+        analysis: str,
+        analytical_article: str
+      }
+    """
+
+    def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        try:
+            # تأكّد من أن البودي JSON صالح
+            try:
+                payload = json.loads(request.body.decode("utf-8"))
+            except json.JSONDecodeError:
+                return JsonResponse(
+                    {"ok": False, "error": "Invalid JSON body"},
+                    status=400,
+                )
+
+            headline = (payload.get("headline") or "").strip()
+            analysis = (payload.get("analysis") or "").strip()
+            lang = payload.get("lang", "ar")
+
+            if not headline:
+                return JsonResponse(
+                    {"ok": False, "error": "headline is required"},
+                    status=400,
+                )
+
+            if not analysis:
+                return JsonResponse(
+                    {"ok": False, "error": "analysis is required"},
+                    status=400,
+                )
+
+            # توليد المقال التحليلي
+            analytical_article = generate_analytical_news_article(headline, analysis, lang)
+
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "headline": headline,
+                    "analysis": analysis,
+                    "analytical_article": analytical_article,
                 },
                 status=200,
             )

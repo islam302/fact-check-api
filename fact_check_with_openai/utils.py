@@ -346,6 +346,112 @@ Write a professional news article that reports on this fact-check investigation:
         }
         return error_messages.get(lang, error_messages["en"])
 
+def generate_analytical_news_article(headline: str, analysis: str, lang: str = "ar") -> str:
+    """
+    Generate a professional analytical news article using international news agency style
+    Based on provided headline and fact-check analysis
+    """
+    
+    # Professional analytical journalism prompt
+    ANALYTICAL_NEWS_PROMPT = f"""
+أنت محرر أول في وكالة أنباء دولية كبرى مثل رويترز أو AP، مع خبرة 20+ سنة في الصحافة التحليلية والتحقق من الأخبار.
+
+**المهارات المطلوبة:**
+1. **محرر أول**: الإشراف على المعايير التحريرية والنزاهة الصحفية
+2. **صحفي تحليلي**: تقديم تحليل عميق وموضوعي
+3. **مختص في التحقق**: عرض المعلومات المحققة بوضوح
+4. **محرر أخبار عاجلة**: التعامل مع القصص المتطورة والمعلومات غير المكتملة
+5. **محلل جيوسياسي**: تقديم السياق الجيوسياسي والعسكري
+6. **صحفي المصلحة العامة**: التركيز على ما يحتاج الجمهور لمعرفته
+7. **مختص اتصالات الأزمات**: التعامل مع المعلومات الحساسة وغير المؤكدة
+
+**معايير الخبر التحليلي:**
+- **الدقة**: بناء المقال على التحليل التحققي، وليس على الادعاء الأصلي
+- **الموضوعية**: عرض نتيجة التحقق بوضوح وموضوعية
+- **الشفافية**: بيان واضح لما تم العثور عليه وما يبقى غير واضح
+- **السياق**: تقديم خلفية وتوضيح تاريخي
+- **التوازن**: تضمين جميع وجهات النظر ذات الصلة بإنصاف
+- **المسؤولية**: مراعاة التأثير العام للتقرير
+- **الوضوح**: الكتابة لفهم الجمهور العام
+- **الشمولية**: تغطية جميع الجوانب المهمة للتحقق
+
+**أسلوب الكتابة للخبر التحليلي:**
+- البدء بجملة صحفية قوية ومحايدة تضع القارئ في جو الحدث دون جزم أو تأكيد لصحة الادعاء
+- توضيح التحليل التحققي بلغة مهنية، مع الإشارة إلى غياب التأكيدات الرسمية أو وجود تضارب في المعلومات
+- التوسع بسياق جيوسياسي أو عسكري منطقي بناءً على التحليل
+- استخدام لغة تحليلية موضوعية
+- الختام بفقرة تتناول انعكاسات أو تساؤلات أوسع متعلقة بالحدث، دون تبني موقف
+
+**المصطلحات المهنية المطلوبة:**
+- "لا يمكن تأكيد ذلك"
+- "وفقًا لتقارير تحليلية"
+- "بحسب مراقبين"
+- "تشير تقديرات أولية إلى"
+- "لا توجد معطيات قاطعة"
+- "يثير ذلك جدلًا واسعًا"
+- "يتزامن هذا مع"
+- "تشير الخلفية الميدانية إلى"
+- "وتُعد هذه التطورات جزءًا من"
+- "ما يثير تساؤلات حول"
+
+**هيكل المقال:**
+1. **الفقرة الأولى**: جملة صحفية قوية ومحايدة تضع القارئ في جو الحدث
+2. **الفقرة الثانية**: توضيح التحليل التحققي بلغة مهنية
+3. **الفقرات الوسطى**: توسع بسياق جيوسياسي أو عسكري منطقي
+4. **الفقرة الختامية**: انعكاسات أو تساؤلات أوسع دون تبني موقف
+
+**سياسة اللغة:**
+- الكتابة بالكامل باللغة العربية
+- استخدام المصطلحات الصحفية المهنية
+- الحفاظ على الاتساق في المصطلحات
+- تكييف السياق الثقافي بشكل مناسب
+- استخدام لغة رسمية ومحترمة
+
+**تنسيق الاستجابة:**
+اكتب مقالاً إخبارياً تحليلياً احترافياً (150-250 كلمة) يقدم تقريراً عن التحقق.
+بناء المقال على التحليل المقدم، وليس على تأكيد أو نفي الادعاء الأصلي.
+التركيز على الشفافية حول ما تم العثور عليه وما يبقى غير واضح.
+
+**المعطيات:**
+العنوان: {headline}
+تحليل التحقق: {analysis}
+
+**المطلوب:**
+- اللغة: العربية بالكامل
+- الأسلوب: صحافة تحليلية احترافية تقدم تقريراً عن التحقق
+- النبرة: موضوعية، شفافة، إعلامية
+- الهيكل: تنسيق مقال إخباري مع فقرات متدرجة
+"""
+
+    try:
+        print("📰 Generating analytical news article...")
+        
+        response = client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[
+                {"role": "system", "content": ANALYTICAL_NEWS_PROMPT}
+            ],
+            temperature=0.1,  # Very low temperature for factual, measured content
+            max_tokens=500,   # Allow enough tokens for 150-250 words
+            top_p=0.9,        # Focus on most likely responses
+            frequency_penalty=0.1,  # Slight penalty to avoid repetition
+            presence_penalty=0.1    # Encourage diverse vocabulary
+        )
+        
+        article = response.choices[0].message.content.strip()
+        print("✅ Analytical news article generated successfully")
+        return article
+        
+    except Exception as e:
+        print(f"❌ Error generating analytical news article: {e}")
+        error_messages = {
+            "ar": "عذراً، حدث خطأ أثناء كتابة المقال التحليلي. يرجى المحاولة مرة أخرى.",
+            "en": "Sorry, an error occurred while writing the analytical article. Please try again.",
+            "fr": "Désolé, une erreur s'est produite lors de la rédaction de l'article analytique. Veuillez réessayer.",
+            "es": "Lo siento, ocurrió un error al escribir el artículo analítico. Por favor, inténtalo de nuevo.",
+        }
+        return error_messages.get(lang, error_messages["en"])
+
 def generate_x_tweet(claim_text: str, case: str, talk: str, sources: List[Dict], lang: str = "ar") -> str:
     """
     Generate a professional X (Twitter) tweet based on fact-check results
@@ -668,23 +774,19 @@ CURRENT_DATE: {datetime.now().strftime('%Y-%m-%d')}
         lowered = case.strip().lower()
         is_uncertain = lowered in {t for s in uncertain_terms.values() for t in s}
         
-        # Generate professional news article if requested and result is uncertain or false
+        # Generate professional news article if requested for all cases (true, false, uncertain)
         news_article = ""
-        if generate_news and (is_uncertain or lowered in {"كاذب", "false", "faux", "falso", "nepravda", "falsch", "yanlış", "ложь", "nepravda"}):
+        if generate_news:
             print("📰 Generating professional news article as requested...")
             # Use the fact-check analysis (talk) and sources for news generation
             news_article = generate_professional_news_article_from_analysis(processed_claim, case, talk, results, lang)
-        elif generate_news and lowered in {"حقيقي", "true", "vrai", "verdadero", "pravda"}:
-            print("ℹ️ News article not generated for true cases")
         
-        # Generate X tweet only if requested and result is uncertain or false
+        # Generate X tweet if requested for all cases (true, false, uncertain)
         x_tweet = ""
-        if generate_tweet and (is_uncertain or lowered in {"كاذب", "false", "faux", "falso", "nepravda", "falsch", "yanlış", "ложь", "nepravda"}):
+        if generate_tweet:
             print("🐦 Generating X tweet as requested...")
             # Use the original search results for tweet generation
             x_tweet = generate_x_tweet(processed_claim, case, talk, results, lang)
-        elif generate_tweet and lowered in {"حقيقي", "true", "vrai", "verdadero", "pravda"}:
-            print("ℹ️ X tweet not generated for true cases")
         
         # Clear sources for uncertain results unless explicitly requested to preserve them
         # But if preserve_sources is true, use the original search results instead of AI sources
