@@ -346,6 +346,114 @@ Write a professional news article that reports on this fact-check investigation:
         }
         return error_messages.get(lang, error_messages["en"])
 
+def generate_confirmed_news_article(headline: str, analysis: str, lang: str = "en") -> str:
+    """
+    Generate a professional confirmed news article in English using international news agency style
+    Based on provided headline and fact-check analysis
+    """
+    
+    # Professional confirmed news prompt in English
+    CONFIRMED_NEWS_PROMPT = f"""
+You are a senior editor-in-chief at a major international news agency (like Reuters or AFP) with 20+ years of experience in analytical journalism and fact-checking.
+
+**REQUIRED EXPERTISE:**
+1. **Editor-in-Chief**: Oversee editorial standards and journalistic integrity
+2. **Analytical Journalist**: Provide deep and objective analysis
+3. **Fact-Checking Specialist**: Present verified information clearly
+4. **Breaking News Editor**: Handle developing stories with incomplete information
+5. **Geopolitical Analyst**: Provide geopolitical and military context
+6. **Public Interest Journalist**: Focus on what the public needs to know
+7. **Crisis Communication Specialist**: Handle sensitive and unconfirmed information
+
+**CONFIRMED NEWS STANDARDS:**
+- **Accuracy**: Build the article on fact-check analysis, not the original claim
+- **Objectivity**: Present fact-check results clearly and objectively
+- **Transparency**: Clearly state what was found and what remains unclear
+- **Context**: Provide background and historical perspective
+- **Balance**: Include all relevant viewpoints fairly
+- **Responsibility**: Consider public impact of reporting
+- **Clarity**: Write for general audience understanding
+- **Completeness**: Cover all important aspects of the fact-check
+
+**WRITING APPROACH FOR CONFIRMED NEWS:**
+- Start directly with the confirmed event without mentioning city name or agency name
+- Follow with a paragraph including the official source or statement that confirmed the news
+- Add analytical background about the event's importance, political or economic context, or regional and international implications
+- Conclude with a paragraph linking the event to broader trends or projects or mentioning reactions if any
+
+**PROFESSIONAL TERMINOLOGY REQUIRED:**
+- "The ministry announced..."
+- "The authority confirmed..."
+- "According to an official statement..."
+- "This represents a step towards..."
+- "The development comes as..."
+- "This coincides with..."
+- "Sources indicate that..."
+- "The move signals..."
+- "This follows..."
+- "The announcement marks..."
+
+**ARTICLE STRUCTURE:**
+1. **Opening Sentence**: Direct description of the confirmed event (what happened, who announced, when)
+2. **Second Paragraph**: Include official source or statement that confirmed the news
+3. **Middle Paragraphs**: Analytical background about importance, context, implications
+4. **Concluding Paragraph**: Link to broader trends or mention reactions
+
+**LANGUAGE POLICY:**
+- Write ENTIRELY in {lang.upper()} language
+- Use professional journalistic terminology
+- Maintain consistency in terminology
+- Adapt cultural context appropriately
+- Use formal, respectful language
+- Avoid mentioning geographic location or agency name in the introduction
+
+**RESPONSE FORMAT:**
+Write a professional analytical news article (150-250 words) that reports on the confirmed event.
+Build the article on the analysis provided, focusing on the confirmed nature of the information.
+Maintain journalistic neutrality and professionalism throughout.
+
+**PROVIDED DATA:**
+Headline: {headline}
+Confirmation Analysis: {analysis}
+
+**REQUIREMENTS:**
+- Language: {lang.upper()} entirely
+- Style: Professional analytical journalism reporting on confirmed news
+- Tone: Neutral, transparent, informative, authoritative
+- Structure: News article format with structured paragraphs
+- Start directly with the event without geographic/agency references
+- Use strong professional language and journalistic terminology
+"""
+
+    try:
+        print("📰 Generating confirmed news article...")
+        
+        response = client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[
+                {"role": "system", "content": CONFIRMED_NEWS_PROMPT}
+            ],
+            temperature=0.1,  # Very low temperature for factual, measured content
+            max_tokens=500,   # Allow enough tokens for 150-250 words
+            top_p=0.9,        # Focus on most likely responses
+            frequency_penalty=0.1,  # Slight penalty to avoid repetition
+            presence_penalty=0.1    # Encourage diverse vocabulary
+        )
+        
+        article = response.choices[0].message.content.strip()
+        print("✅ Confirmed news article generated successfully")
+        return article
+        
+    except Exception as e:
+        print(f"❌ Error generating confirmed news article: {e}")
+        error_messages = {
+            "ar": "عذراً، حدث خطأ أثناء كتابة المقال التحليلي. يرجى المحاولة مرة أخرى.",
+            "en": "Sorry, an error occurred while writing the confirmed news article. Please try again.",
+            "fr": "Désolé, une erreur s'est produite lors de la rédaction de l'article analytique. Veuillez réessayer.",
+            "es": "Lo siento, ocurrió un error al escribir el artículo analítico. Por favor, inténtalo de nuevo.",
+        }
+        return error_messages.get(lang, error_messages["en"])
+
 def generate_analytical_news_article(headline: str, analysis: str, lang: str = "ar") -> str:
     """
     Generate a professional analytical news article using international news agency style
