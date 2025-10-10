@@ -44,10 +44,7 @@ def translate_date_references(text: str) -> str:
     return modified_text
 
 def generate_professional_news_article(claim_text: str, sources: List[Dict], lang: str = "ar") -> str:
-    """
-    Generate a professional news article when fact-check result is uncertain
-    Uses available sources to create a balanced, journalistic piece
-    """
+
     
     # Professional journalism prompt with complete standards
     JOURNALISM_PROMPT = f"""
@@ -621,15 +618,11 @@ Generate a single, professional X tweet (max 280 characters) that:
 - Respects X platform guidelines
 """
 
-    # Prepare context based on fact-check result
+    # Prepare context based on fact-check result (only True or Uncertain)
     if case.lower() in {"حقيقي", "true", "vrai", "verdadero", "pravda"}:
         result_emoji = "✅"
         result_text = "حقيقي" if lang == "ar" else "TRUE"
         tone = "confirming"
-    elif case.lower() in {"كاذب", "false", "faux", "falso", "nepravda"}:
-        result_emoji = "❌"
-        result_text = "كاذب" if lang == "ar" else "FALSE"
-        tone = "debunking"
     else:  # uncertain
         result_emoji = "⚠️"
         result_text = "غير مؤكد" if lang == "ar" else "UNCERTAIN"
@@ -760,7 +753,10 @@ def _fetch_serp(query: str, extra: Dict | None = None, num: int = 10) -> List[Di
 
 FACT_PROMPT_SYSTEM = (
     "You are a rigorous fact-checking assistant. Use ONLY the sources provided below.\n"
-    "- If evidence is insufficient, conflicting, or off-topic, the verdict must be: Uncertain.\n"
+    "- You can ONLY return TWO possible verdicts: True OR Uncertain.\n"
+    "- If the claim is supported by credible sources with clear evidence → verdict: True\n"
+    "- If evidence is insufficient, conflicting, unclear, or off-topic → verdict: Uncertain\n"
+    "- IMPORTANT: There is NO 'False' option. If you cannot confirm something as True, mark it as Uncertain.\n"
     "- Prefer official catalogs and reputable agencies over blogs or social posts.\n"
     "- Match the claim's date/place/magnitude when relevant; do not infer beyond the given sources.\n\n"
 
@@ -777,16 +773,17 @@ FACT_PROMPT_SYSTEM = (
     "FORMAT RULES:\n"
     "• You MUST write all free-text fields strictly in LANG_HINT language.\n"
     "• JSON keys must remain EXACTLY as: \"الحالة\", \"talk\", \"sources\" (do not translate keys).\n"
-    "• The value of \"الحالة\" must be localized according to LANG_HINT:\n"
-    "   - Arabic: حقيقي / كاذب / غير مؤكد\n"
-    "   - English: True / False / Uncertain\n"
-    "   - French: Vrai / Faux / Incertain\n"
-    "   - Spanish: Verdadero / Falso / Incierto\n"
-    "   - Czech: Pravda / Nepravda / Nejisté\n"
+    "• The value of \"الحالة\" must be ONLY one of these two options (localized):\n"
+    "   - Arabic: حقيقي / غير مؤكد (ONLY these two options)\n"
+    "   - English: True / Uncertain (ONLY these two options)\n"
+    "   - French: Vrai / Incertain (ONLY these two options)\n"
+    "   - Spanish: Verdadero / Incierto (ONLY these two options)\n"
+    "   - Czech: Pravda / Nejisté (ONLY these two options)\n"
+    "• NEVER use: False, Faux, Falso, Nepravda, كاذب - these are NOT valid options!\n"
 
     "RESPONSE FORMAT (JSON ONLY — no extra text):\n"
     "{\n"
-    '  \"الحالة\": \"<Localized verdict>\",\n'
+    '  \"الحالة\": \"<Localized verdict: True OR Uncertain ONLY>\",\n'
     '  \"talk\": \"<Explanation paragraph ~350 words in LANG_HINT>\",\n'
     '  \"sources\": [ {\"title\": \"<title>\", \"url\": \"<url>\"}, ... ]\n'
     "}\n\n"
@@ -796,6 +793,7 @@ FACT_PROMPT_SYSTEM = (
     "2) If the claim is Uncertain → keep 'sources' as an empty array [].\n"
     "3) If the claim is True → include ALL confirming sources (no fixed limit).\n"
     "4) Do not fabricate URLs or titles; use only provided sources.\n"
+    "5) REMEMBER: You can ONLY return True or Uncertain. There is NO False option.\n"
 )
 
 

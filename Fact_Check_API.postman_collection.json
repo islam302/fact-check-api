@@ -1,0 +1,270 @@
+{
+  "info": {
+    "name": "Fact Check API",
+    "description": "API للتحقق من الأخبار وصياغة المحتوى الإخباري\n\n⚠️ ملاحظة هامة: النظام يدعم حالتين فقط:\n✅ حقيقي (True)\n⚠️ غير مؤكد (Uncertain)\n\n❌ لا توجد حالة \"كاذب\" - إذا لم يتم التأكد من صحة الخبر، يتم تصنيفه كـ \"غير مؤكد\"",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. التحقق من الأخبار (Fact Check)",
+      "item": [
+        {
+          "name": "فحص أساسي بدون صياغة",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"تم افتتاح مطار جديد في الرياض اليوم\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/fact_check_with_openai/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["fact_check_with_openai", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "فحص مع صياغة خبر وتغريدة",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"تم افتتاح مطار جديد في الرياض اليوم\",\n  \"generate_news\": true,\n  \"generate_tweet\": true\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/fact_check_with_openai/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["fact_check_with_openai", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "فحص مع الاحتفاظ بالمصادر",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"تم افتتاح مطار جديد في الرياض اليوم\",\n  \"preserve_sources\": true\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/fact_check_with_openai/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["fact_check_with_openai", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. صياغة خبر من نتيجة الفحص",
+      "item": [
+        {
+          "name": "صياغة خبر حقيقي",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"claim_text\": \"تم افتتاح مطار جديد في الرياض اليوم\",\n  \"case\": \"حقيقي\",\n  \"talk\": \"تم التأكد من صحة الخبر من خلال مصادر رسمية موثوقة. أعلنت الهيئة العامة للطيران المدني عن افتتاح المطار الجديد في الرياض، والذي يعد أحد أكبر المطارات في المنطقة. يأتي هذا الافتتاح ضمن خطط توسعة البنية التحتية للنقل الجوي في المملكة.\",\n  \"sources\": [\n    {\n      \"title\": \"الهيئة العامة للطيران المدني تعلن افتتاح المطار\",\n      \"url\": \"https://example.com/news1\",\n      \"snippet\": \"أعلنت الهيئة العامة للطيران المدني عن افتتاح المطار الجديد\"\n    },\n    {\n      \"title\": \"افتتاح مطار الرياض الجديد\",\n      \"url\": \"https://example.com/news2\",\n      \"snippet\": \"شهد اليوم افتتاح رسمي للمطار الجديد في الرياض\"\n    }\n  ],\n  \"lang\": \"ar\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/fact_check_with_openai/compose_news/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["fact_check_with_openai", "compose_news", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "صياغة خبر غير مؤكد",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"claim_text\": \"ستنطلق رحلة فضائية جديدة الأسبوع القادم\",\n  \"case\": \"غير مؤكد\",\n  \"talk\": \"لم يتم العثور على معلومات كافية لتأكيد أو نفي هذا الخبر. لا توجد تصريحات رسمية من وكالات الفضاء المعنية بهذا الشأن في الوقت الحالي. قد تكون هناك تطورات في الأيام القادمة تكشف المزيد من التفاصيل.\",\n  \"sources\": [],\n  \"lang\": \"ar\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/fact_check_with_openai/compose_news/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["fact_check_with_openai", "compose_news", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "صياغة خبر بالإنجليزية",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"claim_text\": \"A new airport opened in Riyadh today\",\n  \"case\": \"True\",\n  \"talk\": \"The claim has been verified through reliable official sources. The General Authority of Civil Aviation announced the opening of the new airport in Riyadh, which is one of the largest airports in the region. This opening is part of the expansion plans for aviation infrastructure in the Kingdom.\",\n  \"sources\": [\n    {\n      \"title\": \"General Authority of Civil Aviation announces airport opening\",\n      \"url\": \"https://example.com/news1\",\n      \"snippet\": \"The Authority announced the opening of the new airport\"\n    }\n  ],\n  \"lang\": \"en\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/fact_check_with_openai/compose_news/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["fact_check_with_openai", "compose_news", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. صياغة تغريدة من نتيجة الفحص",
+      "item": [
+        {
+          "name": "صياغة تغريدة حقيقي",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"claim_text\": \"تم افتتاح مطار جديد في الرياض اليوم\",\n  \"case\": \"حقيقي\",\n  \"talk\": \"تم التأكد من صحة الخبر من خلال مصادر رسمية موثوقة. أعلنت الهيئة العامة للطيران المدني عن افتتاح المطار الجديد في الرياض.\",\n  \"sources\": [\n    {\n      \"title\": \"الهيئة العامة للطيران المدني تعلن افتتاح المطار\",\n      \"url\": \"https://example.com/news1\",\n      \"snippet\": \"أعلنت الهيئة العامة للطيران المدني عن افتتاح المطار الجديد\"\n    }\n  ],\n  \"lang\": \"ar\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/fact_check_with_openai/compose_tweet/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["fact_check_with_openai", "compose_tweet", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "صياغة تغريدة غير مؤكد",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"claim_text\": \"ستنطلق رحلة فضائية جديدة الأسبوع القادم\",\n  \"case\": \"غير مؤكد\",\n  \"talk\": \"لم يتم العثور على معلومات كافية لتأكيد أو نفي هذا الخبر. لا توجد تصريحات رسمية من وكالات الفضاء المعنية بهذا الشأن في الوقت الحالي.\",\n  \"sources\": [],\n  \"lang\": \"ar\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/fact_check_with_openai/compose_tweet/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["fact_check_with_openai", "compose_tweet", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "صياغة تغريدة بالإنجليزية",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"claim_text\": \"A new airport opened in Riyadh today\",\n  \"case\": \"True\",\n  \"talk\": \"The claim has been verified through reliable official sources. The General Authority of Civil Aviation announced the opening of the new airport in Riyadh.\",\n  \"sources\": [\n    {\n      \"title\": \"General Authority of Civil Aviation announces airport opening\",\n      \"url\": \"https://example.com/news1\",\n      \"snippet\": \"The Authority announced the opening of the new airport\"\n    }\n  ],\n  \"lang\": \"en\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/fact_check_with_openai/compose_tweet/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["fact_check_with_openai", "compose_tweet", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. صياغة مقال تحليلي",
+      "item": [
+        {
+          "name": "صياغة مقال تحليلي",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"headline\": \"افتتاح مطار الرياض الجديد\",\n  \"analysis\": \"تم التأكد من صحة الخبر من خلال مصادر رسمية موثوقة. أعلنت الهيئة العامة للطيران المدني عن افتتاح المطار الجديد في الرياض، والذي يعد أحد أكبر المطارات في المنطقة.\",\n  \"lang\": \"ar\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/fact_check_with_openai/analytical_news/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["fact_check_with_openai", "analytical_news", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
+

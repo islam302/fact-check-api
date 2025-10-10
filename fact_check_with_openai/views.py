@@ -7,7 +7,12 @@ from django.http import JsonResponse, HttpRequest, HttpResponse
 import json
 import traceback
 
-from .utils import check_fact_simple, generate_analytical_news_article
+from .utils import (
+    check_fact_simple, 
+    generate_analytical_news_article,
+    generate_professional_news_article_from_analysis,
+    generate_x_tweet
+)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -138,6 +143,170 @@ class AnalyticalNewsView(View):
                     "headline": headline,
                     "analysis": analysis,
                     "analytical_article": analytical_article,
+                },
+                status=200,
+            )
+
+        except Exception as e:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "error": str(e),
+                    "trace": traceback.format_exc(),
+                },
+                status=500,
+            )
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class ComposeNewsView(View):
+    """
+    POST /fact_check_with_openai/compose_news/
+    صياغة خبر احترافي من نتيجة الفحص دون حفظ في قاعدة البيانات
+    
+    Body: { 
+      "claim_text": "<النص المراد فحصه>",
+      "case": "<حقيقي/كاذب/غير مؤكد>",
+      "talk": "<التحليل>",
+      "sources": [{"title": "", "url": "", "snippet": ""}],
+      "lang": "ar" (optional, default: "ar")
+    }
+    Response:
+      { 
+        ok: true, 
+        news_article: str
+      }
+    """
+
+    def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        try:
+            try:
+                payload = json.loads(request.body.decode("utf-8"))
+            except json.JSONDecodeError:
+                return JsonResponse(
+                    {"ok": False, "error": "Invalid JSON body"},
+                    status=400,
+                )
+
+            claim_text = (payload.get("claim_text") or "").strip()
+            case = (payload.get("case") or "").strip()
+            talk = (payload.get("talk") or "").strip()
+            sources = payload.get("sources", [])
+            lang = payload.get("lang", "ar")
+
+            if not claim_text:
+                return JsonResponse(
+                    {"ok": False, "error": "claim_text is required"},
+                    status=400,
+                )
+
+            if not case:
+                return JsonResponse(
+                    {"ok": False, "error": "case is required"},
+                    status=400,
+                )
+
+            if not talk:
+                return JsonResponse(
+                    {"ok": False, "error": "talk is required"},
+                    status=400,
+                )
+
+            # توليد المقال الإخباري من نتيجة الفحص
+            news_article = generate_professional_news_article_from_analysis(
+                claim_text=claim_text,
+                case=case,
+                talk=talk,
+                sources=sources,
+                lang=lang
+            )
+
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "news_article": news_article,
+                },
+                status=200,
+            )
+
+        except Exception as e:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "error": str(e),
+                    "trace": traceback.format_exc(),
+                },
+                status=500,
+            )
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class ComposeTweetView(View):
+    """
+    POST /fact_check_with_openai/compose_tweet/
+    صياغة تغريدة احترافية من نتيجة الفحص دون حفظ في قاعدة البيانات
+    
+    Body: { 
+      "claim_text": "<النص المراد فحصه>",
+      "case": "<حقيقي/كاذب/غير مؤكد>",
+      "talk": "<التحليل>",
+      "sources": [{"title": "", "url": "", "snippet": ""}],
+      "lang": "ar" (optional, default: "ar")
+    }
+    Response:
+      { 
+        ok: true, 
+        x_tweet: str
+      }
+    """
+
+    def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        try:
+            try:
+                payload = json.loads(request.body.decode("utf-8"))
+            except json.JSONDecodeError:
+                return JsonResponse(
+                    {"ok": False, "error": "Invalid JSON body"},
+                    status=400,
+                )
+
+            claim_text = (payload.get("claim_text") or "").strip()
+            case = (payload.get("case") or "").strip()
+            talk = (payload.get("talk") or "").strip()
+            sources = payload.get("sources", [])
+            lang = payload.get("lang", "ar")
+
+            if not claim_text:
+                return JsonResponse(
+                    {"ok": False, "error": "claim_text is required"},
+                    status=400,
+                )
+
+            if not case:
+                return JsonResponse(
+                    {"ok": False, "error": "case is required"},
+                    status=400,
+                )
+
+            if not talk:
+                return JsonResponse(
+                    {"ok": False, "error": "talk is required"},
+                    status=400,
+                )
+
+            # توليد التغريدة من نتيجة الفحص
+            x_tweet = generate_x_tweet(
+                claim_text=claim_text,
+                case=case,
+                talk=talk,
+                sources=sources,
+                lang=lang
+            )
+
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "x_tweet": x_tweet,
                 },
                 status=200,
             )
