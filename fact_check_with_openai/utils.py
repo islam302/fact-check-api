@@ -797,6 +797,108 @@ FACT_PROMPT_SYSTEM = (
 )
 
 
+def classify_source_credibility(source: dict) -> str:
+    """
+    Classify a source as 'real' (credible) or 'unconfirmed' (less credible)
+    Based on domain reputation, content quality, and source type
+    """
+    url = source.get("url", "").lower()
+    title = source.get("title", "").lower()
+    snippet = source.get("snippet", "").lower()
+    
+    # High credibility indicators
+    credible_domains = [
+        'reuters.com', 'bbc.com', 'cnn.com', 'ap.org', 'afp.com',
+        'aljazeera.com', 'dw.com', 'france24.com', 'rt.com',
+        'gov.', 'edu.', 'who.int', 'un.org', 'imf.org', 'worldbank.org',
+        'spa.gov.sa', 'wam.ae', 'mena.gov.ae', 'qna.org.qa',
+        'alwatan.com.sa', 'okaz.com.sa', 'alriyadh.com',
+        'alhayat.com', 'asharqalawsat.com', 'alquds.co.uk'
+    ]
+    
+    # Check for credible domains
+    for domain in credible_domains:
+        if domain in url:
+            return "real"
+    
+    # Check for government/educational indicators
+    gov_edu_indicators = ['gov.', 'edu.', 'official', 'ministry', 'authority', 'agency']
+    for indicator in gov_edu_indicators:
+        if indicator in url or indicator in title:
+            return "real"
+    
+    # Check for news agency indicators
+    news_indicators = ['news', 'breaking', 'report', 'agency', 'press', 'media']
+    news_count = sum(1 for indicator in news_indicators if indicator in title or indicator in snippet)
+    
+    # Check for social media or blog indicators (less credible)
+    social_indicators = ['twitter.com', 'facebook.com', 'instagram.com', 'tiktok.com', 'blog', 'blogspot', 'wordpress.com']
+    for indicator in social_indicators:
+        if indicator in url:
+            return "unconfirmed"
+    
+    # Check content quality indicators
+    quality_indicators = ['official', 'confirmed', 'verified', 'statement', 'announcement']
+    quality_count = sum(1 for indicator in quality_indicators if indicator in title or indicator in snippet)
+    
+    # Check for uncertainty indicators
+    uncertainty_indicators = ['rumor', 'unconfirmed', 'alleged', 'reportedly', 'claims', 'sources say']
+    uncertainty_count = sum(1 for indicator in uncertainty_indicators if indicator in title or indicator in snippet)
+    
+    # Scoring system
+    score = 0
+    score += news_count * 2  # News indicators
+    score += quality_count * 3  # Quality indicators
+    score -= uncertainty_count * 2  # Uncertainty indicators
+    
+    # If we have good news indicators and quality indicators, classify as real
+    if news_count >= 1 and quality_count >= 1 and score >= 3:
+        return "real"
+    
+    # If we have uncertainty indicators or low quality, classify as unconfirmed
+    if uncertainty_count >= 1 or score < 2:
+        return "unconfirmed"
+    
+    # Default to unconfirmed for safety
+    return "unconfirmed"
+
+
+def calculate_source_percentages(sources: list) -> dict:
+    """
+    Calculate the percentage of real vs unconfirmed sources
+    """
+    if not sources:
+        return {
+            "real_percentage": 0.0,
+            "unconfirmed_percentage": 0.0,
+            "total_sources": 0,
+            "real_count": 0,
+            "unconfirmed_count": 0
+        }
+    
+    real_count = 0
+    unconfirmed_count = 0
+    
+    for source in sources:
+        classification = classify_source_credibility(source)
+        if classification == "real":
+            real_count += 1
+        else:
+            unconfirmed_count += 1
+    
+    total_sources = len(sources)
+    real_percentage = (real_count / total_sources) * 100 if total_sources > 0 else 0
+    unconfirmed_percentage = (unconfirmed_count / total_sources) * 100 if total_sources > 0 else 0
+    
+    return {
+        "real_percentage": round(real_percentage, 1),
+        "unconfirmed_percentage": round(unconfirmed_percentage, 1),
+        "total_sources": total_sources,
+        "real_count": real_count,
+        "unconfirmed_count": unconfirmed_count
+    }
+
+
 def check_fact_simple(claim_text: str, k_sources: int = 5, generate_news: bool = False, preserve_sources: bool = False, generate_tweet: bool = False) -> dict:
     try:
         # ترجمة المراجع الزمنية في النص
@@ -904,12 +1006,17 @@ CURRENT_DATE: {datetime.now().strftime('%Y-%m-%d')}
                 # Clear sources as per original logic
                 sources = []
 
+        # Calculate source percentages for all sources (including original search results)
+        all_sources = [{"title": r.get("title", ""), "url": r.get("link", ""), "snippet": r.get("snippet", "")} for r in results]
+        source_percentages = calculate_source_percentages(all_sources)
+
         return {
             "case": case, 
             "talk": talk, 
             "sources": sources,
             "news_article": news_article if generate_news else None,
-            "x_tweet": x_tweet if generate_tweet else None
+            "x_tweet": x_tweet if generate_tweet else None,
+            "source_statistics": source_percentages
         }
 
     except Exception as e:

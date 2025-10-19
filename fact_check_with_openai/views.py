@@ -74,6 +74,7 @@ class FactCheckWithOpenaiView(View):
                     "sources": result.get("sources", []),
                     "news_article": result.get("news_article"),
                     "x_tweet": result.get("x_tweet"),
+                    "source_statistics": result.get("source_statistics", {}),
                 },
                 status=200,
             )

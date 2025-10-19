@@ -76,7 +76,14 @@
     }
   ],
   "news_article": null,
-  "x_tweet": null
+  "x_tweet": null,
+  "source_statistics": {
+    "real_percentage": 75.0,
+    "unconfirmed_percentage": 25.0,
+    "total_sources": 8,
+    "real_count": 6,
+    "unconfirmed_count": 2
+  }
 }
 ```
 
@@ -90,6 +97,22 @@
 | غير مؤكد | Uncertain | Incertain | Incierto |
 
 **لا توجد حالة "كاذب"** - إذا لم يتم التأكد من صحة الخبر، يتم تصنيفه كـ "غير مؤكد".
+
+#### إحصائيات المصادر (Source Statistics)
+
+يحتوي الحقل `source_statistics` على معلومات مفصلة حول جودة وموثوقية المصادر المستخدمة في التحقق:
+
+| الحقل | النوع | الوصف |
+|-------|------|-------|
+| `real_percentage` | number | نسبة المصادر الموثوقة (الحقيقية) |
+| `unconfirmed_percentage` | number | نسبة المصادر غير المؤكدة |
+| `total_sources` | number | إجمالي عدد المصادر |
+| `real_count` | number | عدد المصادر الموثوقة |
+| `unconfirmed_count` | number | عدد المصادر غير المؤكدة |
+
+**معايير تصنيف المصادر:**
+- **مصادر موثوقة (Real)**: وكالات أنباء معروفة، مواقع حكومية، مصادر أكاديمية
+- **مصادر غير مؤكدة (Unconfirmed)**: وسائل التواصل الاجتماعي، المدونات، مصادر غير رسمية
 
 ---
 

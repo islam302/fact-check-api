@@ -30,7 +30,8 @@ ALLOWED_HOSTS = [
     'localhost',
     'fact-check-api-32dx.onrender.com',
     'fact-check-nine.vercel.app',
-    'fact-check.una-oic.org'
+    'fact-check.una-oic.org',
+    'fact-check-demo.vercel.app'
 
 ]
 
@@ -41,7 +42,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5174",
     "https://fact-check-api-32dx.onrender.com",
     "https://fact-check-nine.vercel.app",
-    "https://fact-check.una-oic.org"
+    "https://fact-check.una-oic.org",
+    "https://fact-check-demo.vercel.app"
 ]
 
 
