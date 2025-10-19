@@ -89,16 +89,16 @@ TEMPLATES = [
 WSGI_APPLICATION = 'Config.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'data_handler_db_hgn2',
+        'USER': 'data_handler_db_user',
+        'PASSWORD': 'aPJZR9ECxbppOtpjooQ4JnF3hcSuFuo7',
+        'HOST': 'dpg-d14bpq15pdvs73f14js0-a.oregon-postgres.render.com',
+        'PORT': '5432',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
