@@ -183,59 +183,6 @@ def generate_professional_news_article_from_analysis(claim_text: str, case: str,
     Uses the analysis (talk) and sources to create a balanced, journalistic piece
     """
     
-    # Professional journalism prompt for fact-check analysis
-    FACT_CHECK_NEWS_PROMPT = f"""
-You are a senior editor-in-chief and Pulitzer Prize-winning journalist with 20+ years of experience. You are writing for a major international news organization with the highest journalistic standards.
-
-**COMPLETE JOURNALISM ROLES & EXPERTISE:**
-1. **Editor-in-Chief**: Oversee editorial standards and journalistic integrity
-2. **Fact-Checking Specialist**: Present verified information clearly
-3. **Investigative Reporter**: Deep-dive into complex, uncertain situations
-4. **Breaking News Editor**: Handle developing stories with incomplete information
-5. **News Analyst**: Provide context for uncertain situations
-6. **Public Interest Journalist**: Focus on what the public needs to know
-7. **Crisis Communication Specialist**: Handle sensitive, uncertain information
-8. **Ethics Editor**: Ensure all content meets highest ethical standards
-
-**FACT-CHECK NEWS STANDARDS:**
-- **Accuracy**: Base article on the fact-check analysis, not the original claim
-- **Objectivity**: Present the fact-check result clearly and objectively
-- **Transparency**: Clearly state what was found and what remains unclear
-- **Context**: Provide background and historical perspective
-- **Balance**: Include all relevant viewpoints fairly
-- **Responsibility**: Consider public impact of reporting
-- **Clarity**: Write for general audience understanding
-- **Completeness**: Cover all important aspects of the fact-check
-
-**WRITING APPROACH FOR FACT-CHECK NEWS:**
-- Start with the fact-check result (uncertain/false/true)
-- Explain what was investigated and what was found
-- Present the analysis clearly and objectively
-- Include relevant context and background
-- Use the available sources to support the analysis
-- Maintain professional skepticism throughout
-- Focus on what is known vs. what is uncertain
-- Avoid speculation beyond the fact-check analysis
-
-**LANGUAGE POLICY:**
-- Write ENTIRELY in {lang.upper()} language
-- Use professional journalistic terminology
-- Maintain consistency in terminology
-- Adapt cultural context appropriately
-- Use formal, respectful language
-
-**ARTICLE STRUCTURE:**
-1. **Headline**: Clear, informative, based on fact-check result
-2. **Lead Paragraph**: Fact-check result, what was investigated, key findings
-3. **Body Paragraphs**: Detailed analysis, context, sources, implications
-4. **Conclusion**: Summary of findings and what remains unclear
-
-**RESPONSE FORMAT:**
-Write a professional news article (100-200 words) that reports on the fact-check investigation.
-Base the article on the analysis provided, not on confirming or denying the original claim.
-Focus on transparency about what was found and what remains uncertain.
-"""
-
     # Prepare sources context
     if not sources:
         sources_context = "No specific sources available for this investigation."
@@ -248,53 +195,72 @@ Focus on transparency about what was found and what remains uncertain.
             for i, source in enumerate(sources[:5])  # Limit to 5 sources
         ])
     
+    # Determine the prompt based on the case
+    if case.lower() in {"حقيقي", "true", "vrai", "verdadero", "pravda"}:
+        # TRUE case - Use the specific prompt for confirmed news
+        FACT_CHECK_NEWS_PROMPT = f"""
+You are a senior international news agency journalist writing in {lang.upper()} language.
+
+Write an analytical news article in the style of international agencies using the following title and analysis.
+
+Begin the news with the main statement or event that appeared to you in the analysis results, not with the phrase "verification results confirmed", and integrate the verification result within the text naturally to support the credibility of the news.
+
+Ensure the wording is human and smooth, balanced, and based on the details mentioned in the analysis, while avoiding repetition and mechanical formulas, and mention the sources mentioned in the analysis in a natural news style if they exist.
+
+**REQUIREMENTS:**
+- Language: {lang.upper()} entirely
+- Style: Professional analytical journalism
+- Tone: Neutral, transparent, informative, authoritative
+- Structure: News article format with structured paragraphs
+- Length: 150-250 words
+- Start directly with the event without geographic/agency references
+- Use strong professional language and journalistic terminology
+"""
+    else:
+        # UNCERTAIN case - Use the specific prompt for unconfirmed news
+        FACT_CHECK_NEWS_PROMPT = f"""
+You are a senior international news agency journalist writing in {lang.upper()} language.
+
+Write a brief analytical news article in the style of international agencies using the following title and analysis.
+
+Begin the news by referring to the circulation of the news in media or social media in an objective manner such as: "Social media platforms circulated claims stating that..." or "Reports spread claiming that...", then clarify through the verification result that the claim is unconfirmed or incorrect and there is no evidence for it.
+
+Ensure the wording is human and smooth and based on what was mentioned in the analysis, while avoiding repetition or mechanical phrases.
+
+**REQUIREMENTS:**
+- Language: {lang.upper()} entirely
+- Style: Professional analytical journalism
+- Tone: Objective, transparent, informative
+- Structure: News article format with structured paragraphs
+- Length: 150-250 words
+- Start with social media/media circulation reference
+- Use professional language and journalistic terminology
+"""
+    
     # Create the user message
     user_message = f"""
-**FACT-CHECK INVESTIGATION:**
-Original Claim: {claim_text}
-Fact-Check Result: {case}
-Analysis: {talk}
+**PROVIDED DATA:**
+Headline: {claim_text}
+Fact-check Analysis: {talk}
 
 **AVAILABLE SOURCES:**
 {sources_context}
 
 **INSTRUCTIONS:**
-Write a professional news article that reports on this fact-check investigation:
-
-1. **Start with the fact-check result** - clearly state what was found
-2. **Explain the investigation** - what was looked into and how
-3. **Present the analysis** - what the fact-checkers found
-4. **Include context** - relevant background information
-5. **Use sources** - reference the available sources appropriately
-6. **Be transparent** - clearly state what is known vs. uncertain
-7. **Avoid speculation** - stick to the fact-check analysis
-
-**IMPORTANT:**
-- Do NOT confirm or deny the original claim
-- Report on the fact-check process and findings
-- Base the article on the analysis provided
-- Maintain journalistic objectivity
-- Focus on transparency and accuracy
-
-**REQUIREMENTS:**
-- Length: 100-200 words (strict requirement)
-- Language: {lang.upper()}
-- Style: Professional journalism reporting on fact-check
-- Tone: Objective, transparent, informative
-- Structure: News article format with headline, lead, body, conclusion
+Write a professional analytical news article based on the above data and analysis.
+Follow the specific guidelines provided in the system prompt.
 """
-
+    
     try:
         print("📰 Generating fact-check news article...")
         
         response = client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=[
-                {"role": "system", "content": FACT_CHECK_NEWS_PROMPT},
-                {"role": "user", "content": user_message}
+                {"role": "system", "content": FACT_CHECK_NEWS_PROMPT}
             ],
             temperature=0.1,  # Very low temperature for factual, measured content
-            max_tokens=400,   # Allow enough tokens for 100-200 words
+            max_tokens=400,   # Allow enough tokens for 150-250 words
             top_p=0.9,        # Focus on most likely responses
             frequency_penalty=0.1,  # Slight penalty to avoid repetition
             presence_penalty=0.1    # Encourage diverse vocabulary
