@@ -6,9 +6,17 @@ from django.views import View
 from django.http import JsonResponse, HttpRequest, HttpResponse
 import json
 import traceback
+import asyncio
 
+# Import async utilities
+from .utils_async import (
+    check_fact_simple_async,
+    async_client,
+    OPENAI_MODEL
+)
+
+# Keep sync imports for backward compatibility endpoints
 from .utils import (
-    check_fact_simple, 
     generate_analytical_news_article,
     generate_professional_news_article_from_analysis,
     generate_x_tweet
@@ -35,9 +43,11 @@ class FactCheckWithOpenaiView(View):
         news_article: str (only if generate_news=true),
         x_tweet: str (only if generate_tweet=true)
       }
+    
+    ⚡ ASYNC VERSION - Much faster with parallel operations!
     """
 
-    def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    async def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         try:
             # تأكّد من أن البودي JSON صالح
             try:
@@ -55,6 +65,7 @@ class FactCheckWithOpenaiView(View):
                     status=400,
                 )
 
+            # ✅ استخدام النسخة الـ async للسرعة الفائقة
             # ✅ نمرّر k_sources (الموحد) بدل أي اسم قديم
             # ✅ نمرّر generate_news إذا كان مطلوباً
             # ✅ نمرّر preserve_sources إذا كان مطلوباً
@@ -62,7 +73,9 @@ class FactCheckWithOpenaiView(View):
             generate_news = payload.get("generate_news", False)
             preserve_sources = payload.get("preserve_sources", False)
             generate_tweet = payload.get("generate_tweet", False)
-            result = check_fact_simple(query, k_sources=10, generate_news=generate_news, preserve_sources=preserve_sources, generate_tweet=generate_tweet)
+            
+            # استخدام النسخة الـ async
+            result = await check_fact_simple_async(query, k_sources=10, generate_news=generate_news, preserve_sources=preserve_sources, generate_tweet=generate_tweet)
 
             # ✅ نعيد المفاتيح الموحدة
             return JsonResponse(
