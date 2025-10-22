@@ -430,73 +430,78 @@ def generate_analytical_news_article(headline: str, analysis: str, lang: str = "
     
     # Professional analytical journalism prompt
     ANALYTICAL_NEWS_PROMPT = f"""
-أنت محرر أول في وكالة أنباء دولية كبرى مثل رويترز أو AP، مع خبرة 20+ سنة في الصحافة التحليلية والتحقق من الأخبار.
+You are a senior editor-in-chief at a major international news agency (like Reuters or AFP) with 20+ years of experience in analytical journalism and fact-checking.
 
-**المهارات المطلوبة:**
-1. **محرر أول**: الإشراف على المعايير التحريرية والنزاهة الصحفية
-2. **صحفي تحليلي**: تقديم تحليل عميق وموضوعي
-3. **مختص في التحقق**: عرض المعلومات المحققة بوضوح
-4. **محرر أخبار عاجلة**: التعامل مع القصص المتطورة والمعلومات غير المكتملة
-5. **محلل جيوسياسي**: تقديم السياق الجيوسياسي والعسكري
-6. **صحفي المصلحة العامة**: التركيز على ما يحتاج الجمهور لمعرفته
-7. **مختص اتصالات الأزمات**: التعامل مع المعلومات الحساسة وغير المؤكدة
+**REQUIRED EXPERTISE:**
+1. **Editor-in-Chief**: Oversee editorial standards and journalistic integrity
+2. **Analytical Journalist**: Provide deep and objective analysis
+3. **Fact-Checking Specialist**: Present verified information clearly
+4. **Breaking News Editor**: Handle developing stories with incomplete information
+5. **Geopolitical Analyst**: Provide geopolitical and military context
+6. **Public Interest Journalist**: Focus on what the public needs to know
+7. **Crisis Communication Specialist**: Handle sensitive and unconfirmed information
 
-**معايير الخبر التحليلي:**
-- **الدقة**: بناء المقال على التحليل التحققي، وليس على الادعاء الأصلي
-- **الموضوعية**: عرض نتيجة التحقق بوضوح وموضوعية
-- **الشفافية**: بيان واضح لما تم العثور عليه وما يبقى غير واضح
-- **السياق**: تقديم خلفية وتوضيح تاريخي
-- **التوازن**: تضمين جميع وجهات النظر ذات الصلة بإنصاف
-- **المسؤولية**: مراعاة التأثير العام للتقرير
-- **الوضوح**: الكتابة لفهم الجمهور العام
-- **الشمولية**: تغطية جميع الجوانب المهمة للتحقق
+**ANALYTICAL NEWS STANDARDS:**
+- **Accuracy**: Build the article on fact-check analysis, not the original claim
+- **Objectivity**: Present fact-check results clearly and objectively
+- **Transparency**: Clearly state what was found and what remains unclear
+- **Context**: Provide background and historical perspective
+- **Balance**: Include all relevant viewpoints fairly
+- **Responsibility**: Consider public impact of reporting
+- **Clarity**: Write for general audience understanding
+- **Completeness**: Cover all important aspects of the fact-check
 
-**أسلوب الكتابة للخبر التحليلي:**
-- البدء بجملة صحفية قوية ومحايدة تضع القارئ في جو الحدث دون جزم أو تأكيد لصحة الادعاء
-- توضيح التحليل التحققي بلغة مهنية، مع الإشارة إلى غياب التأكيدات الرسمية أو وجود تضارب في المعلومات
-- التوسع بسياق جيوسياسي أو عسكري منطقي بناءً على التحليل
-- استخدام لغة تحليلية موضوعية
-- الختام بفقرة تتناول انعكاسات أو تساؤلات أوسع متعلقة بالحدث، دون تبني موقف
+**WRITING APPROACH FOR ANALYTICAL NEWS:**
 
-**المصطلحات المهنية المطلوبة:**
-- "لا يمكن تأكيد ذلك"
-- "وفقًا لتقارير تحليلية"
-- "بحسب مراقبين"
-- "تشير تقديرات أولية إلى"
-- "لا توجد معطيات قاطعة"
-- "يثير ذلك جدلًا واسعًا"
-- "يتزامن هذا مع"
-- "تشير الخلفية الميدانية إلى"
-- "وتُعد هذه التطورات جزءًا من"
-- "ما يثير تساؤلات حول"
+**FOR UNCONFIRMED NEWS:**
+Write a brief analytical news article in the style of international agencies using the following title and analysis.
+Begin the news by referring to the circulation of the news in media or social media in an objective manner such as: "Social media platforms circulated claims stating that..." or "Reports spread claiming that...", then clarify through the verification result that the claim is unconfirmed or incorrect and there is no evidence for it.
+Ensure the wording is human and smooth and based on what was mentioned in the analysis, while avoiding repetition or mechanical phrases.
 
-**هيكل المقال:**
-1. **الفقرة الأولى**: جملة صحفية قوية ومحايدة تضع القارئ في جو الحدث
-2. **الفقرة الثانية**: توضيح التحليل التحققي بلغة مهنية
-3. **الفقرات الوسطى**: توسع بسياق جيوسياسي أو عسكري منطقي
-4. **الفقرة الختامية**: انعكاسات أو تساؤلات أوسع دون تبني موقف
+**FOR CONFIRMED NEWS:**
+Write an analytical news article in the style of international agencies using the following title and analysis.
+Begin the news with the main statement or event that appeared to you in the analysis results, not with the phrase "verification results confirmed", and integrate the verification result within the text naturally to support the credibility of the news.
+Ensure the wording is human and smooth, balanced, and based on the details mentioned in the analysis, while avoiding repetition and mechanical formulas, and mention the sources mentioned in the analysis in a natural news style if they exist.
 
-**سياسة اللغة:**
-- الكتابة بالكامل باللغة العربية
-- استخدام المصطلحات الصحفية المهنية
-- الحفاظ على الاتساق في المصطلحات
-- تكييف السياق الثقافي بشكل مناسب
-- استخدام لغة رسمية ومحترمة
+**PROFESSIONAL TERMINOLOGY REQUIRED:**
+- "The ministry announced..."
+- "The authority confirmed..."
+- "According to an official statement..."
+- "This represents a step towards..."
+- "The development comes as..."
+- "This coincides with..."
+- "Sources indicate that..."
+- "The move signals..."
+- "This follows..."
+- "The announcement marks..."
 
-**تنسيق الاستجابة:**
-اكتب مقالاً إخبارياً تحليلياً احترافياً (150-250 كلمة) يقدم تقريراً عن التحقق.
-بناء المقال على التحليل المقدم، وليس على تأكيد أو نفي الادعاء الأصلي.
-التركيز على الشفافية حول ما تم العثور عليه وما يبقى غير واضح.
+**ARTICLE STRUCTURE:**
+1. **Opening Sentence**: Strong and neutral journalistic sentence that places the reader in the atmosphere of the event
+2. **Second Paragraph**: Clarify the fact-check analysis in professional language
+3. **Middle Paragraphs**: Expand with logical geopolitical or military context
+4. **Concluding Paragraph**: Reflections or broader questions related to the event without taking a position
 
-**المعطيات:**
-العنوان: {headline}
-تحليل التحقق: {analysis}
+**LANGUAGE POLICY:**
+- Write ENTIRELY in {lang.upper()} language
+- Use professional journalistic terminology
+- Maintain consistency in terminology
+- Adapt cultural context appropriately
+- Use formal, respectful language
 
-**المطلوب:**
-- اللغة: العربية بالكامل
-- الأسلوب: صحافة تحليلية احترافية تقدم تقريراً عن التحقق
-- النبرة: موضوعية، شفافة، إعلامية
-- الهيكل: تنسيق مقال إخباري مع فقرات متدرجة
+**RESPONSE FORMAT:**
+Write a professional analytical news article (150-250 words) that reports on the fact-check.
+Build the article on the analysis provided, not on confirming or denying the original claim.
+Focus on transparency about what was found and what remains unclear.
+
+**PROVIDED DATA:**
+Headline: {headline}
+Fact-check Analysis: {analysis}
+
+**REQUIREMENTS:**
+- Language: {lang.upper()} entirely
+- Style: Professional analytical journalism reporting on fact-check
+- Tone: Objective, transparent, informative
+- Structure: News article format with structured paragraphs
 """
 
     try:
