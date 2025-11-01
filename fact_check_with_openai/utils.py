@@ -1,4 +1,4 @@
-import os, time, traceback, requests, urllib.parse, json
+import os, traceback, requests, json
 from typing import List, Dict
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -13,169 +13,6 @@ def translate_date_references(text: str) -> str:
     """
     # إرجاع النص كما هو دون أي تعديل
     return text
-
-def generate_professional_news_article(claim_text: str, sources: List[Dict], lang: str = "ar") -> str:
-
-    
-    # Professional journalism prompt with complete standards
-    JOURNALISM_PROMPT = f"""
-You are a senior editor-in-chief and Pulitzer Prize-winning journalist with 20+ years of experience. You are writing for a major international news organization with the highest journalistic standards.
-
-**COMPLETE JOURNALISM ROLES & EXPERTISE:**
-1. **Editor-in-Chief**: Oversee editorial standards and journalistic integrity
-2. **Investigative Reporter**: Deep-dive into complex, uncertain situations
-3. **Breaking News Editor**: Handle developing stories with incomplete information
-4. **Fact-Checker**: Distinguish between verified and unverified claims
-5. **News Analyst**: Provide context for uncertain situations
-6. **Editorial Writer**: Craft balanced coverage of controversial topics
-7. **Public Interest Journalist**: Focus on what the public needs to know
-8. **Crisis Communication Specialist**: Handle sensitive, uncertain information
-9. **Data Journalist**: Present incomplete data responsibly
-10. **Watchdog Reporter**: Monitor and report on uncertain developments
-11. **Community Journalist**: Serve public interest in uncertain times
-12. **International Correspondent**: Cover global events with cultural sensitivity
-13. **Political Reporter**: Navigate complex political situations
-14. **Science Journalist**: Translate complex information for general audience
-15. **Ethics Editor**: Ensure all content meets highest ethical standards
-
-**COMPLETE JOURNALISM STANDARDS:**
-- **Accuracy**: Verify all facts before publication, double-check sources
-- **Objectivity**: Present multiple perspectives fairly, avoid bias
-- **Balance**: Include all relevant viewpoints, give equal weight to different sides
-- **Transparency**: Cite sources clearly, acknowledge limitations
-- **Ethics**: Respect privacy, avoid harm, consider public interest
-- **Clarity**: Write for general audience understanding, avoid jargon
-- **Timeliness**: Address current relevance and urgency
-- **Completeness**: Cover all important aspects, provide full context
-- **Independence**: Maintain editorial independence from external pressures
-- **Accountability**: Take responsibility for reporting, correct errors promptly
-- **Fairness**: Treat all subjects fairly, avoid discrimination
-- **Responsibility**: Consider public impact, avoid sensationalism
-
-**PROFESSIONAL WRITING STYLE:**
-- Use inverted pyramid structure (most important info first)
-- Write in third person, past tense
-- Use active voice when possible
-- Include direct quotes when available
-- Provide context and background
-- Maintain neutral, professional tone
-- Avoid speculation and unverified claims
-- Include relevant statistics and data
-- Use precise, clear language
-- Avoid unnecessary adjectives and adverbs
-- Maintain consistent terminology
-- Use proper attribution for all claims
-
-**LANGUAGE POLICY:**
-- Write ENTIRELY in {lang.upper()} language
-- Use professional journalistic terminology
-- Maintain consistency in terminology
-- Adapt cultural context appropriately
-- Use formal, respectful language
-- Avoid colloquialisms and slang
-
-**COMPLETE ARTICLE STRUCTURE:**
-1. **Headline**: Clear, informative, attention-grabbing (avoid sensationalism)
-2. **Lead Paragraph**: Who, what, when, where, why, how (5W+H)
-3. **Body Paragraphs**: Supporting details, quotes, context, analysis
-4. **Conclusion**: Summary, implications, next steps
-
-**RESPONSE FORMAT:**
-Write a professional news article (100-200 words) that meets the highest journalistic standards.
-Focus on transparency, accuracy, and public interest. Maintain complete journalistic integrity.
-"""
-
-    # Prepare sources context
-    if not sources:
-        sources_context = "No specific sources available for this topic."
-    else:
-        sources_context = "\n\n".join([
-            f"**Source {i+1}:**\n"
-            f"Title: {source.get('title', 'N/A')}\n"
-            f"URL: {source.get('url', 'N/A')}\n"
-            f"Snippet: {source.get('snippet', 'N/A')}"
-            for i, source in enumerate(sources[:5])  # Limit to 5 sources
-        ])
-    
-    # Create the user message
-    user_message = f"""
-**ORIGINAL CLAIM/TOPIC:**
-{claim_text}
-
-**AVAILABLE SOURCES:**
-{sources_context}
-
-**SITUATION CONTEXT:**
-This is an UNCERTAIN fact-check result. The claim could not be definitively verified as true or false due to:
-- Insufficient evidence
-- Conflicting information
-- Lack of reliable sources
-- Incomplete data
-- Ongoing developments
-
-**PROFESSIONAL JOURNALISM INSTRUCTIONS:**
-Write a comprehensive news article that meets the highest journalistic standards:
-
-1. **ACCURACY**: Only report verified information, double-check all facts
-2. **OBJECTIVITY**: Present multiple perspectives fairly, avoid bias
-3. **BALANCE**: Include all relevant viewpoints, give equal weight to different sides
-4. **TRANSPARENCY**: Clearly distinguish between what is known and what remains uncertain
-5. **ETHICS**: Respect privacy, avoid harm, consider public interest
-6. **CLARITY**: Write for general audience understanding, avoid jargon
-7. **COMPLETENESS**: Cover all important aspects, provide full context
-8. **RESPONSIBILITY**: Consider public impact, avoid sensationalism
-
-**PROFESSIONAL WRITING APPROACH:**
-- Use inverted pyramid structure (most important info first)
-- Start with what IS known and verified
-- Clearly state what remains unclear or uncertain
-- Use phrases like "according to available information", "sources indicate", "reports suggest"
-- Include appropriate disclaimers about incomplete information
-- Focus on the public interest and what people need to know
-- Maintain professional skepticism throughout
-- Use third person, past tense, active voice
-- Include proper attribution for all claims
-
-**REQUIREMENTS:**
-- Length: 250-350 words (strict requirement - must be at least 250 words)
-- Language: {lang.upper()}
-- Style: Professional journalism meeting highest standards
-- Tone: Neutral, measured, transparent, authoritative
-- Structure: Complete news article with headline, lead, body, conclusion
-- Quality: Pulitzer Prize-level journalism
-- Content: Comprehensive coverage with detailed analysis and context
-- IMPORTANT: Write a detailed, comprehensive article that thoroughly covers all aspects of the story. Include extensive background, multiple perspectives, detailed analysis, and comprehensive context. The article must be substantial and informative, not brief or superficial.
-"""
-
-    try:
-        print("📰 Generating professional news article...")
-        
-        response = client.chat.completions.create(
-            model=OPENAI_MODEL,
-            messages=[
-                {"role": "system", "content": JOURNALISM_PROMPT},
-                {"role": "user", "content": user_message}
-            ],
-            temperature=0.1,  # Very low temperature for factual, measured content
-            max_tokens=800,   # Allow enough tokens for 250-350 words
-            top_p=0.9,        # Focus on most likely responses
-            frequency_penalty=0.1,  # Slight penalty to avoid repetition
-            presence_penalty=0.1    # Encourage diverse vocabulary
-        )
-        
-        article = response.choices[0].message.content.strip()
-        print("✅ News article generated successfully")
-        return article
-        
-    except Exception as e:
-        print(f"❌ Error generating news article: {e}")
-        error_messages = {
-            "ar": "عذراً، حدث خطأ أثناء كتابة المقال الإخباري. يرجى المحاولة مرة أخرى.",
-            "en": "Sorry, an error occurred while writing the news article. Please try again.",
-            "fr": "Désolé, une erreur s'est produite lors de la rédaction de l'article de presse. Veuillez réessayer.",
-            "es": "Lo siento, ocurrió un error al escribir el artículo de noticias. Por favor, inténtalo de nuevo.",
-        }
-        return error_messages.get(lang, error_messages["en"])
 
 def generate_professional_news_article_from_analysis(claim_text: str, case: str, talk: str, sources: List[Dict], lang: str = "ar") -> str:
     """
@@ -201,44 +38,65 @@ def generate_professional_news_article_from_analysis(claim_text: str, case: str,
         FACT_CHECK_NEWS_PROMPT = f"""
 You are a senior international news agency journalist writing in {lang.upper()} language.
 
-Write an analytical news article in the style of international agencies using the following title and analysis.
+Write a professional news article in the style of international news agencies based on the provided headline and analysis.
 
-Begin the news with the main statement or event that appeared to you in the analysis results, not with the phrase "verification results confirmed", and integrate the verification result within the text naturally to support the credibility of the news.
+**CRITICAL INSTRUCTIONS FOR TRUE NEWS:**
+- Start DIRECTLY with the news event/statement itself (e.g., "اختُتمت اليوم أعمال..." or "Today concluded the works of...")
+- Write as a DIRECT NEWS REPORT, NOT as analysis or verification
+- First paragraph: Report the main event naturally with details (who, what, when, where, participants, etc.)
+- Second paragraph: Discuss the topics, themes, or issues that were addressed/covered
+- Third paragraph: Provide additional context about sessions, discussions, or highlights
+- AVOID any mention of "verification", "fact-check", "results", "تحقق", "نتائج التحقق" anywhere in the article
+- Write naturally and smoothly as if reporting events as they happened
+- Mention official sources and statements naturally
 
-Ensure the wording is human and smooth, balanced, and based on the details mentioned in the analysis, while avoiding repetition and mechanical formulas, and mention the sources mentioned in the analysis in a natural news style if they exist.
+**STRUCTURE TEMPLATE FOR TRUE NEWS:**
+1. **Opening Paragraph**: Start directly with the event (e.g., "اختُتمت اليوم أعمال..." or "Today concluded...") with key details
+2. **Second Paragraph**: Discuss the topics, themes, or issues that were covered
+3. **Third Paragraph**: Additional context about sessions, discussions, or highlights
 
 **REQUIREMENTS:**
 - Language: {lang.upper()} entirely
-- Style: Professional analytical journalism
-- Tone: Neutral, transparent, informative, authoritative
-- Structure: News article format with structured paragraphs
+- Style: Professional news reporting (like AFP, Reuters, AP)
+- Tone: Neutral, factual, authoritative
+- Structure: Exactly 3 paragraphs following the template above
 - Length: 150-250 words
-- Start directly with the event without geographic/agency references
-- Use strong professional language and journalistic terminology
+- Must follow the exact structure template
+- Use professional journalistic language
+- NO mention of verification or fact-checking
 """
     else:
         # UNCERTAIN case - Use the specific prompt for unconfirmed news
         FACT_CHECK_NEWS_PROMPT = f"""
 You are a senior international news agency journalist writing in {lang.upper()} language.
 
-Write a brief analytical news article in the style of international agencies using the following title and analysis.
+Write a professional news article in the style of international news agencies based on the provided headline and analysis.
 
-Begin the news by referring to the circulation of the news in media or social media in an objective manner such as: "Social media platforms circulated claims stating that..." or "Reports spread claiming that...", then clarify through the verification result that the claim is unconfirmed or incorrect and there is no evidence for it.
+**CRITICAL INSTRUCTIONS FOR UNCERTAIN NEWS:**
+- Start with: "تداولت منصات التواصل الاجتماعي مزاعم تفيد بأن [الادعاء]" (or equivalent in the target language)
+- Follow immediately with: "غير أن نتائج التحقق أظهرت أن هذا الادعاء لا يمكن تأكيده" (or equivalent: "However, verification results showed that this claim cannot be confirmed")
+- Then explain the available information and why the claim cannot be confirmed
+- Provide historical context or relevant background information if available
+- End with a clear conclusion that the claim lacks reliable evidence
 
-Ensure the wording is human and smooth and based on what was mentioned in the analysis, while avoiding repetition or mechanical phrases.
+**STRUCTURE TEMPLATE:**
+1. **Opening**: "تداولت منصات التواصل الاجتماعي مزاعم تفيد بأن [الادعاء]، غير أن نتائج التحقق أظهرت أن هذا الادعاء لا يمكن تأكيده."
+2. **Body**: Explain available information, historical context, and evidence that contradicts or doesn't support the claim
+3. **Conclusion**: "وبناءً على ذلك، يتبيّن أن الادعاء المتداول يفتقر إلى أي أساس من الأدلة الموثوقة، ولا توجد مصادر تدعم صحته."
 
 **REQUIREMENTS:**
 - Language: {lang.upper()} entirely
-- Style: Professional analytical journalism
+- Style: Professional news reporting
 - Tone: Objective, transparent, informative
 - Structure: News article format with structured paragraphs
 - Length: 150-250 words
-- Start with social media/media circulation reference
-- Use professional language and journalistic terminology
+- Must follow the exact structure template above
+- Use professional journalistic language
 """
     
     # Create the user message
-    user_message = f"""
+    if case.lower() in {"حقيقي", "true", "vrai", "verdadero", "pravda"}:
+        user_message = f"""
 **PROVIDED DATA:**
 Headline: {claim_text}
 Fact-check Analysis: {talk}
@@ -246,13 +104,49 @@ Fact-check Analysis: {talk}
 **AVAILABLE SOURCES:**
 {sources_context}
 
+**EXAMPLE FORMAT FOR TRUE NEWS (ARABIC):**
+اختُتمت اليوم أعمال المؤتمر العدلي الدولي في العاصمة السعودية الرياض، تحت شعار "نُيَسِّر الوصول للعدالة بتقنيات رقمية"، وشارك فيه أكثر من 4000 مشارك، و 50 متحدثاً وخبيراً دوليّاً.
+
+وناقش المؤتمر قضايا عدة أبرزها مستقبل القضاء في ظل التحول الرقمي، والتجارب الدولية في التحول الرقمي، والبعد القانوني للذكاء الاصطناعي، وتوظيف الذكاء الاصطناعي في تحسين العدالة، وتحليل البيانات لتحسين العدالة، ومستقبل الوسائل البديلة لتسوية النزاعات في ظل التحول الرقمي.
+
+وسلَّطت الجلسات الحوارية الضوء على مجموعة من الموضوعات التي تتناول دور التحول الرقمي والذكاء الاصطناعي في المجالين العدلي والقضائي.
+
 **INSTRUCTIONS:**
-Write a professional analytical news article based on the above data and analysis.
-Follow the specific guidelines provided in the system prompt.
+- Follow the exact structure shown in the example above
+- First paragraph: Start directly with the event (who, what, when, where, participants)
+- Second paragraph: Discuss the topics, themes, or issues that were covered
+- Third paragraph: Additional context about sessions, discussions, or highlights
+- Write as a direct news report, NOT as verification or fact-check
+- AVOID any mention of "verification", "fact-check", "results", "تحقق", "نتائج التحقق"
+- Use the analysis data to inform your reporting, but present it as breaking news
+- Adapt the structure to the target language ({lang.upper()}) while maintaining the same meaning
 """
-    
+    else:
+        user_message = f"""
+**PROVIDED DATA:**
+Headline: {claim_text}
+Fact-check Analysis: {talk}
+
+**AVAILABLE SOURCES:**
+{sources_context}
+
+**EXAMPLE FORMAT FOR UNCERTAIN NEWS (ARABIC):**
+تداولت منصات التواصل الاجتماعي مزاعم تفيد بأن [الادعاء]، غير أن نتائج التحقق أظهرت أن هذا الادعاء لا يمكن تأكيده.
+
+وبحسب المعلومات المتاحة، [شرح المعلومات المتاحة والسبب في عدم التأكيد]. [معلومات تاريخية أو سياق إذا كان متاحاً].
+
+وبناءً على ذلك، يتبيّن أن الادعاء المتداول يفتقر إلى أي أساس من الأدلة الموثوقة، ولا توجد مصادر تدعم صحته.
+
+**INSTRUCTIONS:**
+- Follow the exact structure shown in the example above
+- Use the analysis data to explain why the claim cannot be confirmed
+- Include historical context or relevant background when available
+- End with the conclusion that the claim lacks reliable evidence
+- Adapt the structure to the target language ({lang.upper()}) while maintaining the same meaning
+"""
+
     try:
-        print("📰 Generating fact-check news article...")
+        print("📰 Generating news article...")
         
         response = client.chat.completions.create(
             model=OPENAI_MODEL,
@@ -267,124 +161,16 @@ Follow the specific guidelines provided in the system prompt.
         )
         
         article = response.choices[0].message.content.strip()
-        print("✅ Fact-check news article generated successfully")
+        print("✅ News article generated successfully")
         return article
         
     except Exception as e:
-        print(f"❌ Error generating fact-check news article: {e}")
+        print(f"❌ Error generating news article: {e}")
         error_messages = {
             "ar": "عذراً، حدث خطأ أثناء كتابة المقال الإخباري. يرجى المحاولة مرة أخرى.",
             "en": "Sorry, an error occurred while writing the news article. Please try again.",
             "fr": "Désolé, une erreur s'est produite lors de la rédaction de l'article de presse. Veuillez réessayer.",
             "es": "Lo siento, ocurrió un error al escribir el artículo de noticias. Por favor, inténtalo de nuevo.",
-        }
-        return error_messages.get(lang, error_messages["en"])
-
-def generate_confirmed_news_article(headline: str, analysis: str, lang: str = "en") -> str:
-    """
-    Generate a professional confirmed news article in English using international news agency style
-    Based on provided headline and fact-check analysis
-    """
-    
-    # Professional confirmed news prompt in English
-    CONFIRMED_NEWS_PROMPT = f"""
-You are a senior editor-in-chief at a major international news agency (like Reuters or AFP) with 20+ years of experience in analytical journalism and fact-checking.
-
-**REQUIRED EXPERTISE:**
-1. **Editor-in-Chief**: Oversee editorial standards and journalistic integrity
-2. **Analytical Journalist**: Provide deep and objective analysis
-3. **Fact-Checking Specialist**: Present verified information clearly
-4. **Breaking News Editor**: Handle developing stories with incomplete information
-5. **Geopolitical Analyst**: Provide geopolitical and military context
-6. **Public Interest Journalist**: Focus on what the public needs to know
-7. **Crisis Communication Specialist**: Handle sensitive and unconfirmed information
-
-**CONFIRMED NEWS STANDARDS:**
-- **Accuracy**: Build the article on fact-check analysis, not the original claim
-- **Objectivity**: Present fact-check results clearly and objectively
-- **Transparency**: Clearly state what was found and what remains unclear
-- **Context**: Provide background and historical perspective
-- **Balance**: Include all relevant viewpoints fairly
-- **Responsibility**: Consider public impact of reporting
-- **Clarity**: Write for general audience understanding
-- **Completeness**: Cover all important aspects of the fact-check
-
-**WRITING APPROACH FOR CONFIRMED NEWS:**
-- Start directly with the confirmed event without mentioning city name or agency name
-- Follow with a paragraph including the official source or statement that confirmed the news
-- Add analytical background about the event's importance, political or economic context, or regional and international implications
-- Conclude with a paragraph linking the event to broader trends or projects or mentioning reactions if any
-
-**PROFESSIONAL TERMINOLOGY REQUIRED:**
-- "The ministry announced..."
-- "The authority confirmed..."
-- "According to an official statement..."
-- "This represents a step towards..."
-- "The development comes as..."
-- "This coincides with..."
-- "Sources indicate that..."
-- "The move signals..."
-- "This follows..."
-- "The announcement marks..."
-
-**ARTICLE STRUCTURE:**
-1. **Opening Sentence**: Direct description of the confirmed event (what happened, who announced, when)
-2. **Second Paragraph**: Include official source or statement that confirmed the news
-3. **Middle Paragraphs**: Analytical background about importance, context, implications
-4. **Concluding Paragraph**: Link to broader trends or mention reactions
-
-**LANGUAGE POLICY:**
-- Write ENTIRELY in {lang.upper()} language
-- Use professional journalistic terminology
-- Maintain consistency in terminology
-- Adapt cultural context appropriately
-- Use formal, respectful language
-- Avoid mentioning geographic location or agency name in the introduction
-
-**RESPONSE FORMAT:**
-Write a professional analytical news article (150-250 words) that reports on the confirmed event.
-Build the article on the analysis provided, focusing on the confirmed nature of the information.
-Maintain journalistic neutrality and professionalism throughout.
-
-**PROVIDED DATA:**
-Headline: {headline}
-Confirmation Analysis: {analysis}
-
-**REQUIREMENTS:**
-- Language: {lang.upper()} entirely
-- Style: Professional analytical journalism reporting on confirmed news
-- Tone: Neutral, transparent, informative, authoritative
-- Structure: News article format with structured paragraphs
-- Start directly with the event without geographic/agency references
-- Use strong professional language and journalistic terminology
-"""
-
-    try:
-        print("📰 Generating confirmed news article...")
-        
-        response = client.chat.completions.create(
-            model=OPENAI_MODEL,
-            messages=[
-                {"role": "system", "content": CONFIRMED_NEWS_PROMPT}
-            ],
-            temperature=0.1,  # Very low temperature for factual, measured content
-            max_tokens=500,   # Allow enough tokens for 150-250 words
-            top_p=0.9,        # Focus on most likely responses
-            frequency_penalty=0.1,  # Slight penalty to avoid repetition
-            presence_penalty=0.1    # Encourage diverse vocabulary
-        )
-        
-        article = response.choices[0].message.content.strip()
-        print("✅ Confirmed news article generated successfully")
-        return article
-        
-    except Exception as e:
-        print(f"❌ Error generating confirmed news article: {e}")
-        error_messages = {
-            "ar": "عذراً، حدث خطأ أثناء كتابة المقال التحليلي. يرجى المحاولة مرة أخرى.",
-            "en": "Sorry, an error occurred while writing the confirmed news article. Please try again.",
-            "fr": "Désolé, une erreur s'est produite lors de la rédaction de l'article analytique. Veuillez réessayer.",
-            "es": "Lo siento, ocurrió un error al escribir el artículo analítico. Por favor, inténtalo de nuevo.",
         }
         return error_messages.get(lang, error_messages["en"])
 
@@ -408,26 +194,29 @@ You are a senior editor-in-chief at a major international news agency (like Reut
 7. **Crisis Communication Specialist**: Handle sensitive and unconfirmed information
 
 **ANALYTICAL NEWS STANDARDS:**
-- **Accuracy**: Build the article on fact-check analysis, not the original claim
-- **Objectivity**: Present fact-check results clearly and objectively
+- **Accuracy**: Build the article based on reliable information and sources
+- **Objectivity**: Present information clearly and objectively
 - **Transparency**: Clearly state what was found and what remains unclear
 - **Context**: Provide background and historical perspective
 - **Balance**: Include all relevant viewpoints fairly
 - **Responsibility**: Consider public impact of reporting
 - **Clarity**: Write for general audience understanding
-- **Completeness**: Cover all important aspects of the fact-check
+- **Completeness**: Cover all important aspects of the story
 
-**WRITING APPROACH FOR ANALYTICAL NEWS:**
+**CRITICAL WRITING APPROACH:**
 
 **FOR UNCONFIRMED NEWS:**
-Write a brief analytical news article in the style of international agencies using the following title and analysis.
-Begin the news by referring to the circulation of the news in media or social media in an objective manner such as: "Social media platforms circulated claims stating that..." or "Reports spread claiming that...", then clarify through the verification result that the claim is unconfirmed or incorrect and there is no evidence for it.
-Ensure the wording is human and smooth and based on what was mentioned in the analysis, while avoiding repetition or mechanical phrases.
+Write a professional news article in the style of international agencies.
+Begin by reporting what is being circulated or claimed in media/social platforms in an objective manner such as: "Social media platforms circulated claims stating that..." or "Reports spread claiming that...", then report the actual situation: no evidence found, unconfirmed, or refuted.
+Write as DIRECT NEWS REPORTING, NOT as a fact-check or verification result.
+AVOID mentioning "verification" or "fact-check" anywhere in the article.
 
 **FOR CONFIRMED NEWS:**
-Write an analytical news article in the style of international agencies using the following title and analysis.
-Begin the news with the main statement or event that appeared to you in the analysis results, not with the phrase "verification results confirmed", and integrate the verification result within the text naturally to support the credibility of the news.
-Ensure the wording is human and smooth, balanced, and based on the details mentioned in the analysis, while avoiding repetition and mechanical formulas, and mention the sources mentioned in the analysis in a natural news style if they exist.
+Write a professional news article in the style of international agencies.
+Begin the news with the main statement or event itself, NOT with phrases like "verification results confirmed" or "analysis shows".
+Present the information as breaking news or a news report, NOT as analysis or verification.
+Write naturally as if reporting events as they happened.
+AVOID any mention of "verification", "fact-check", "analysis", "investigation", or "confirmation".
 
 **PROFESSIONAL TERMINOLOGY REQUIRED:**
 - "The ministry announced..."
@@ -443,7 +232,7 @@ Ensure the wording is human and smooth, balanced, and based on the details menti
 
 **ARTICLE STRUCTURE:**
 1. **Opening Sentence**: Strong and neutral journalistic sentence that places the reader in the atmosphere of the event
-2. **Second Paragraph**: Clarify the fact-check analysis in professional language
+2. **Second Paragraph**: Provide key information and context in professional language
 3. **Middle Paragraphs**: Expand with logical geopolitical or military context
 4. **Concluding Paragraph**: Reflections or broader questions related to the event without taking a position
 
@@ -455,17 +244,17 @@ Ensure the wording is human and smooth, balanced, and based on the details menti
 - Use formal, respectful language
 
 **RESPONSE FORMAT:**
-Write a professional analytical news article (150-250 words) that reports on the fact-check.
-Build the article on the analysis provided, not on confirming or denying the original claim.
-Focus on transparency about what was found and what remains unclear.
+Write a professional news article (150-250 words) that reports the story directly.
+Build the article on the information provided to inform readers.
+Present what is known and what remains unclear in a natural news reporting style.
 
 **PROVIDED DATA:**
 Headline: {headline}
-Fact-check Analysis: {analysis}
+News Information: {analysis}
 
 **REQUIREMENTS:**
 - Language: {lang.upper()} entirely
-- Style: Professional analytical journalism reporting on fact-check
+- Style: Professional news reporting (like AFP, Reuters, AP)
 - Tone: Objective, transparent, informative
 - Structure: News article format with structured paragraphs
 """
