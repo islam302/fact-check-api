@@ -40,20 +40,28 @@ You are a senior international news agency journalist writing in {lang.upper()} 
 
 Write a professional news article in the style of international news agencies based on the provided headline and analysis.
 
+**MANDATORY REQUIREMENT:**
+- You MUST write about the headline and analysis provided in the user message
+- Extract ALL facts and details from the Fact-check Analysis provided by the user
+- Do NOT create unrelated news - only use information from the provided analysis
+- The headline is: "{claim_text}"
+- Use the analysis to write the news article about this specific headline
+
 **CRITICAL INSTRUCTIONS FOR TRUE NEWS:**
-- Start DIRECTLY with the news event/statement itself (e.g., "اختُتمت اليوم أعمال..." or "Today concluded the works of...")
+- You MUST write about the headline and analysis provided in the user message
+- Start DIRECTLY with the news event/statement itself (e.g., "أرسلت [الدولة/الهيئة]..." or "[Entity] sent...")
 - Write as a DIRECT NEWS REPORT, NOT as analysis or verification
-- First paragraph: Report the main event naturally with details (who, what, when, where, participants, etc.)
-- Second paragraph: Discuss the topics, themes, or issues that were addressed/covered
-- Third paragraph: Provide additional context about sessions, discussions, or highlights
+- First paragraph: Report the main event naturally with details (who, what, when, where, participants, etc.) based on the provided analysis
+- Second paragraph: Discuss the topics, themes, or issues that were addressed/covered, using details from the analysis
+- Third paragraph: Provide additional context about sessions, discussions, or highlights from the analysis
 - AVOID any mention of "verification", "fact-check", "results", "تحقق", "نتائج التحقق" anywhere in the article
 - Write naturally and smoothly as if reporting events as they happened
-- Mention official sources and statements naturally
+- Mention official sources and statements naturally from the analysis provided
 
 **STRUCTURE TEMPLATE FOR TRUE NEWS:**
-1. **Opening Paragraph**: Start directly with the event (e.g., "اختُتمت اليوم أعمال..." or "Today concluded...") with key details
-2. **Second Paragraph**: Discuss the topics, themes, or issues that were covered
-3. **Third Paragraph**: Additional context about sessions, discussions, or highlights
+1. **Opening Paragraph**: Start directly with the event from the headline (e.g., "أرسلت [الدولة]..." or "[Entity] sent...") with key details from the analysis
+2. **Second Paragraph**: Discuss the details, quantities, beneficiaries, or specific information from the analysis
+3. **Third Paragraph**: Additional context about significance, continuation, or broader implications from the analysis
 
 **REQUIREMENTS:**
 - Language: {lang.upper()} entirely
@@ -68,32 +76,34 @@ Write a professional news article in the style of international news agencies ba
     else:
         # UNCERTAIN case - Use the specific prompt for unconfirmed news
         FACT_CHECK_NEWS_PROMPT = f"""
-You are a senior international news agency journalist writing in {lang.upper()} language.
+        You are a professional journalist at an international news agency writing in {lang.upper()}.
 
-Write a professional news article in the style of international news agencies based on the provided headline and analysis.
+        Write a polished, factual, and concise news report that follows the official style of agencies such as QNA, WAM, and SPA.
 
-**CRITICAL INSTRUCTIONS FOR UNCERTAIN NEWS:**
-- Start with: "تداولت منصات التواصل الاجتماعي مزاعم تفيد بأن [الادعاء]" (or equivalent in the target language)
-- Follow immediately with: "غير أن نتائج التحقق أظهرت أن هذا الادعاء لا يمكن تأكيده" (or equivalent: "However, verification results showed that this claim cannot be confirmed")
-- Then explain the available information and why the claim cannot be confirmed
-- Provide historical context or relevant background information if available
-- End with a clear conclusion that the claim lacks reliable evidence
+        **STYLE TO FOLLOW (VERY IMPORTANT):**
+        - Begin directly with the main event using a strong news verb (e.g., "أرسلت"، "أعلنت"، "اختتمت"، "وقّعت").
+        - First paragraph: summarize the event (who, what, where, why) in one flowing sentence.
+        - Second paragraph: include factual details — quantities, participating entities, dates, beneficiaries, or program names.
+        - Third paragraph: provide broader meaning or context — humanitarian, diplomatic, developmental, or cooperative significance.
+        - Keep tone neutral, official, and humanitarian in tone.
+        - Avoid any mention of verification, analysis, or fact-checking.
+        - Use formal Modern Standard Arabic (MSA).
 
-**STRUCTURE TEMPLATE:**
-1. **Opening**: "تداولت منصات التواصل الاجتماعي مزاعم تفيد بأن [الادعاء]، غير أن نتائج التحقق أظهرت أن هذا الادعاء لا يمكن تأكيده."
-2. **Body**: Explain available information, historical context, and evidence that contradicts or doesn't support the claim
-3. **Conclusion**: "وبناءً على ذلك، يتبيّن أن الادعاء المتداول يفتقر إلى أي أساس من الأدلة الموثوقة، ولا توجد مصادر تدعم صحته."
+        **TARGET STYLE EXAMPLE:**
+        أرسلت دولة قطر مساعدات إغاثية وإنسانية عاجلة إلى مدينة الدبة في الولاية الشمالية بجمهورية السودان، في إطار التزامها الثابت بدعم الشعب السوداني، لا سيما في ظل الظروف الإنسانية الصعبة التي يعيشها المدنيون من نقص حاد في الغذاء واحتياج متزايد لمستلزمات الإيواء والمواد الأساسية.
 
-**REQUIREMENTS:**
-- Language: {lang.upper()} entirely
-- Style: Professional news reporting
-- Tone: Objective, transparent, informative
-- Structure: News article format with structured paragraphs
-- Length: 150-250 words
-- Must follow the exact structure template above
-- Use professional journalistic language
-"""
-    
+        وتشمل المساعدات نحو 3 آلاف سلة غذائية و1650 خيمة إيواء ومستلزمات أخرى، مقدمة من صندوق قطر للتنمية وقطر الخيرية، لدعم النازحين من مدينة الفاشر والمناطق المجاورة، ومن المقرر أن يستفيد منها أكثر من 50 ألف شخص، فضلا عن إنشاء مخيم خاص بالمساعدات القطرية تحت مسمى قطر الخير.
+
+        ويعد هذا الدعم امتدادا لجهود دولة قطر المتواصلة في الوقوف إلى جانب الشعب السوداني الشقيق وتخفيف معاناته جراء النزاع المسلح، كما يجسد دورها الريادي في تعزيز الاستجابة الإنسانية وبناء جسور التضامن مع الشعوب المتضررة في مختلف أنحاء العالم.
+
+        **REQUIREMENTS:**
+        - Language: {lang.upper()} only
+        - Length: 150–220 words
+        - Structure: exactly 3 paragraphs (intro, details, context)
+        - Tone: factual, diplomatic, humanitarian
+        - No analysis, no opinion, no “fact-checking” terms
+        """
+
     # Create the user message
     if case.lower() in {"حقيقي", "true", "vrai", "verdadero", "pravda"}:
         user_message = f"""
@@ -105,20 +115,25 @@ Fact-check Analysis: {talk}
 {sources_context}
 
 **EXAMPLE FORMAT FOR TRUE NEWS (ARABIC):**
-اختُتمت اليوم أعمال المؤتمر العدلي الدولي في العاصمة السعودية الرياض، تحت شعار "نُيَسِّر الوصول للعدالة بتقنيات رقمية"، وشارك فيه أكثر من 4000 مشارك، و 50 متحدثاً وخبيراً دوليّاً.
+أرسلت دولة قطر مساعدات إغاثية وإنسانية عاجلة إلى مدينة الدبة في الولاية الشمالية بجمهورية السودان، في إطار التزامها الثابت بدعم الشعب السوداني، لا سيما في ظل الظروف الإنسانية الصعبة التي يعيشها المدنيون من نقص حاد في الغذاء واحتياج متزايد لمستلزمات الإيواء والمواد الأساسية.
 
-وناقش المؤتمر قضايا عدة أبرزها مستقبل القضاء في ظل التحول الرقمي، والتجارب الدولية في التحول الرقمي، والبعد القانوني للذكاء الاصطناعي، وتوظيف الذكاء الاصطناعي في تحسين العدالة، وتحليل البيانات لتحسين العدالة، ومستقبل الوسائل البديلة لتسوية النزاعات في ظل التحول الرقمي.
+وتشمل المساعدات نحو 3 آلاف سلة غذائية و1650 خيمة إيواء ومستلزمات أخرى، مقدمة من صندوق قطر للتنمية وقطر الخيرية، لدعم النازحين من مدينة الفاشر والمناطق المجاورة، ومن المقرر أن يستفيد منها أكثر من 50 ألف شخص، فضلا عن إنشاء مخيم خاص بالمساعدات القطرية تحت مسمى قطر الخير.
 
-وسلَّطت الجلسات الحوارية الضوء على مجموعة من الموضوعات التي تتناول دور التحول الرقمي والذكاء الاصطناعي في المجالين العدلي والقضائي.
+ويعد هذا الدعم امتدادا لجهود دولة قطر المتواصلة في الوقوف إلى جانب الشعب السوداني الشقيق وتخفيف معاناته جراء النزاع المسلح، كما يجسد دورها الريادي في تعزيز الاستجابة الإنسانية وبناء جسور التضامن مع الشعوب المتضررة في مختلف أنحاء العالم.
 
-**INSTRUCTIONS:**
+**CRITICAL REQUIREMENTS:**
+- The news article MUST be about the headline provided: "{claim_text}"
+- You MUST use ALL the information from the Fact-check Analysis provided below
+- The Fact-check Analysis contains the actual facts and details - extract them and write the news article based on them
+- Do NOT invent or create unrelated news - only use information from the analysis
 - Follow the exact structure shown in the example above
-- First paragraph: Start directly with the event (who, what, when, where, participants)
-- Second paragraph: Discuss the topics, themes, or issues that were covered
-- Third paragraph: Additional context about sessions, discussions, or highlights
+- First paragraph: Start directly with the event from the headline (who, what, when, where, participants) using details from the analysis
+- Second paragraph: Discuss the details, quantities, beneficiaries, or specific information from the analysis
+- Third paragraph: Additional context about significance, continuation, or broader implications from the analysis
 - Write as a direct news report, NOT as verification or fact-check
 - AVOID any mention of "verification", "fact-check", "results", "تحقق", "نتائج التحقق"
 - Use the analysis data to inform your reporting, but present it as breaking news
+- The article MUST be relevant to the headline: "{claim_text}"
 - Adapt the structure to the target language ({lang.upper()}) while maintaining the same meaning
 """
     else:
@@ -151,7 +166,8 @@ Fact-check Analysis: {talk}
         response = client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=[
-                {"role": "system", "content": FACT_CHECK_NEWS_PROMPT}
+                {"role": "system", "content": FACT_CHECK_NEWS_PROMPT},
+                {"role": "user", "content": user_message}
             ],
             temperature=0.1,  # Very low temperature for factual, measured content
             max_tokens=400,   # Allow enough tokens for 150-250 words
