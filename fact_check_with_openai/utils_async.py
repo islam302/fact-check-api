@@ -363,31 +363,45 @@ async def is_news_content_async(text: str) -> tuple[bool, str]:
     If not news-related, returns (False, reason in Arabic).
     """
     try:
-        validation_prompt = """You are a strict news content validator for a fact-checking API. Only accept content that is clearly within a journalistic/news context.
+        validation_prompt = """You are a news content validator for a fact-checking API. Your role is to distinguish between NEWSWORTHY EVENTS/OFFICIAL NEWS and non-journalistic content.
 
-STRICTLY ACCEPT (news/journalistic content only):
-- News headlines, articles, or reports about current events
-- Political, social, economic, sports, or international news
-- Official statements, declarations, or announcements from governments, organizations, or public institutions
-- Events, incidents, or developments that are newsworthy and part of public discourse
-- Claims or allegations about public figures, institutions, or matters of public interest
-- News-worthy statements that could appear in a news agency report
+✅ ACCEPT (News/Official Events - MUST ACCEPT):
+- Government announcements, official projects, infrastructure projects (e.g., "إنشاء قطار يربط الدوحة بالرياض" = YES - official government project)
+- Political news, diplomatic events, international relations
+- Economic news, business announcements, market developments
+- Social events that are newsworthy (public events, official ceremonies)
+- Sports news, official matches, tournament results
+- Official statements from governments, ministries, organizations
+- Public events, inaugurations, official launches
+- Any event, project, or announcement that would appear in a news agency report
+- Headlines about current events, incidents, or developments
 
-STRICTLY REJECT (anything outside journalistic/news context):
-- Personal opinions, feelings, or subjective statements without news context
-- Casual conversations, everyday small talk, or personal messages
-- Personal advice, general knowledge questions, or educational content
-- Fiction, stories, poetry, or creative writing
-- Technical tutorials, how-to guides, or instructional content
-- Personal greetings, casual inquiries, or social interactions
-- Philosophical discussions or abstract concepts without connection to news/events
-- Questions about general topics that are not news-related
-- Any text that would not fit in a professional news report
+❌ REJECT (Non-journalistic content - MUST REJECT):
+- How-to guides, recipes, cooking instructions (e.g., "طريقة عمل المحشي" = NO - instructional content)
+- Personal opinions or feelings without news context
+- Casual conversations, greetings, personal messages
+- Educational content, tutorials, instructional materials
+- General knowledge questions
+- Fiction, stories, poetry, creative writing
+- Personal advice or tips
+- Philosophical or abstract discussions without news connection
+- Everyday small talk
 
-IMPORTANT: Be strict. If there's any doubt whether the text is within a journalistic/news context, reject it.
+CRITICAL RULES:
+1. If the text describes an EVENT, PROJECT, ANNOUNCEMENT, or OFFICIAL STATEMENT → ACCEPT (yes)
+2. If the text is INSTRUCTIONAL, EDUCATIONAL, or PERSONAL → REJECT (no)
+3. Government projects/infrastructure = YES (e.g., building trains, airports, bridges)
+4. Official announcements = YES
+5. Recipes/tutorials/how-to = NO
+
+EXAMPLES:
+- "إنشاء قطار يربط الدوحة بالرياض" → YES (official government project/news event)
+- "وزارة الخارجية تعلن عن اتفاقية جديدة" → YES (official announcement)
+- "طريقة عمل المحشي" → NO (recipe/instructional)
+- "كيف أتعلم البرمجة" → NO (educational question)
 
 Respond with ONLY one word: "yes" if it's news/journalistic content, "no" if it's not.
-Then on a new line, provide a brief reason in Arabic explaining why it's not news content."""
+Then on a new line, provide a brief reason in Arabic explaining your decision."""
 
         resp = await async_client.chat.completions.create(
             model=OPENAI_MODEL,
@@ -701,6 +715,7 @@ CURRENT_DATE: {datetime.now().strftime('%Y-%m-%d')}
             ],
             temperature=0.2,
             max_tokens=800,  # Enough for comprehensive fact-check
+            response_format={"type": "json_object"},
         )
         answer = (resp.choices[0].message.content or "").strip()
         
@@ -716,110 +731,211 @@ CURRENT_DATE: {datetime.now().strftime('%Y-%m-%d')}
             answer = json_match.group(0)
         
         # Parse JSON with error handling
+        parsed = None
         try:
             parsed = json.loads(answer)
         except json.JSONDecodeError as e:
-            print(f"⚠️ JSON parsing error: {e}")
-            print(f"📄 Response content (first 500 chars): {answer[:500]}")
+            # Downgrade noisy logs; only show if explicitly debugging
+            if os.getenv("FACT_DEBUG", "0") == "1":
+                print(f"⚠️ JSON parsing error: {e}")
+                print(f"📄 Response content (first 1000 chars): {answer[:1000]}")
             
-            # Try multiple strategies to fix JSON
-            parsed = None  # Initialize to track if parsing succeeded
-            
-            # Strategy 1: Try to find the JSON object in the response
-            json_match = re.search(r'\{[\s\S]*\}', answer)
-            if json_match:
-                answer = json_match.group(0)
-                try:
-                    parsed = json.loads(answer)
-                except json.JSONDecodeError:
-                    pass
-            
-            # Strategy 2: Try to fix unterminated strings
-            if parsed is None and "Unterminated string" in str(e):
-                # Try to fix by finding the position and closing the string
-                # Simple approach: find the last incomplete string and try to close it
-                lines = answer.split('\n')
-                fixed_lines = []
-                for i, line in enumerate(lines):
-                    # Check if this line has an unterminated string (odd number of unescaped quotes)
-                    unescaped_quotes = [m.start() for m in re.finditer(r'(?<!\\)"', line)]
-                    if len(unescaped_quotes) % 2 != 0:
-                        # Unterminated string - try to close it at the end
-                        if not line.rstrip().endswith('"'):
-                            # Add closing quote and remove any trailing incomplete content
-                            line = line.rstrip()
-                            # Try to find where the string should end
-                            last_quote_pos = unescaped_quotes[-1]
-                            # If there's content after the last quote, it might be incomplete
-                            if len(line) > last_quote_pos + 1:
-                                # Check if there's a comma or other valid JSON after
-                                remaining = line[last_quote_pos + 1:].strip()
-                                if not remaining.startswith(','):
-                                    # Likely incomplete - close the string
-                                    line = line[:last_quote_pos + 1] + '"'
-                            else:
-                                line = line + '"'
-                    fixed_lines.append(line)
-                fixed_answer = '\n'.join(fixed_lines)
+            # Strategy 1: Smart extraction and reconstruction
+            # Instead of trying to fix malformed JSON, extract and rebuild it properly
+            try:
+                # Extract case
+                case_match = re.search(r'"الحالة"\s*:\s*"([^"]+)"', answer)
+                case = case_match.group(1) if case_match else "غير مؤكد"
                 
-                try:
-                    parsed = json.loads(fixed_answer)
-                except json.JSONDecodeError:
-                    parsed = None
+                # Extract talk - find everything between "talk": " and "sources"
+                talk_start = answer.find('"talk": "')
+                talk = ""
+                if talk_start != -1:
+                    talk_value_start = talk_start + 9
+                    # Find where "sources" begins
+                    sources_pos = answer.find('",\n  "sources"', talk_value_start)
+                    if sources_pos == -1:
+                        sources_pos = answer.find('",\n  "sources"', talk_value_start)
+                    if sources_pos == -1:
+                        sources_pos = answer.find('\n  "sources"', talk_value_start)
+                    if sources_pos == -1:
+                        sources_pos = answer.find('"sources"', talk_value_start)
+                    
+                    if sources_pos != -1:
+                        # Extract content between "talk": " and "sources"
+                        talk_raw = answer[talk_value_start:sources_pos].rstrip()
+                        # Remove trailing comma and quote if exists
+                        talk_raw = talk_raw.rstrip(',').rstrip()
+                        if talk_raw.endswith('"'):
+                            talk_raw = talk_raw[:-1]
+                        # Clean up escape sequences
+                        talk = talk_raw.replace('\\"', '"').replace('\\n', '\n').replace('\\\\', '\\')
+                    else:
+                        # Fallback: find until end of JSON
+                        end_brace = answer.rfind('}', talk_value_start)
+                        if end_brace != -1:
+                            talk_raw = answer[talk_value_start:end_brace].rstrip().rstrip(',').rstrip()
+                            if talk_raw.endswith('"'):
+                                talk_raw = talk_raw[:-1]
+                            talk = talk_raw.replace('\\"', '"').replace('\\n', '\n').replace('\\\\', '\\')
+                
+                if not talk:
+                    talk = "لا توجد معلومات متاحة."
+                
+                # Extract sources array - more robust pattern
+                sources = []
+                sources_match = re.search(r'"sources"\s*:\s*\[(.*?)\]', answer, re.DOTALL)
+                if sources_match:
+                    sources_str = sources_match.group(1)
+                    # Try multiple patterns to extract sources
+                    # Pattern 1: Standard format with title and url
+                    source_pattern = r'\{\s*"title"\s*:\s*"([^"]+)"\s*,\s*"url"\s*:\s*"([^"]+)"'
+                    for src_match in re.finditer(source_pattern, sources_str):
+                        sources.append({
+                            "title": src_match.group(1),
+                            "url": src_match.group(2)
+                        })
+                    
+                    # Pattern 2: If no sources found, try with different spacing
+                    if not sources:
+                        source_pattern2 = r'"title"\s*:\s*"([^"]+)"\s*[,\s]+\s*"url"\s*:\s*"([^"]+)"'
+                        for src_match in re.finditer(source_pattern2, sources_str):
+                            sources.append({
+                                "title": src_match.group(1),
+                                "url": src_match.group(2)
+                            })
+                    
+                    # Pattern 3: Try to extract from parsed JSON if available
+                    if not sources and parsed:
+                        # If parsed is a dict, try to get sources directly
+                        if isinstance(parsed, dict):
+                            sources_from_parsed = parsed.get("sources", [])
+                            if sources_from_parsed and isinstance(sources_from_parsed, list):
+                                sources = sources_from_parsed
+                
+                # If still no sources and case is "حقيقي", use original search results
+                if not sources and case.lower() in {"حقيقي", "true", "vrai", "verdadero", "pravda"}:
+                    # Use original search results as sources
+                    sources = [{"title": r.get("title", ""), "url": r.get("link", ""), "snippet": r.get("snippet", "")} for r in results[:5]]
+                    print(f"📚 Using {len(sources)} original search results as sources")
+                
+                # Rebuild valid JSON dict (no need to parse, just use the dict)
+                rebuilt_json = {
+                    "الحالة": case,
+                    "talk": talk,
+                    "sources": sources
+                }
+                
+                # Use the rebuilt dict directly
+                parsed = rebuilt_json
+                print("✅ Rebuilt JSON from extracted fields")
+                
+            except Exception as rebuild_error:
+                print(f"⚠️ Rebuild failed: {rebuild_error}")
+                parsed = None
             
-            # Strategy 3: Try to extract fields using regex if parsing still failed
+            # Strategy 2: Use regex extraction if JSON parsing still fails
             if parsed is None:
+                # Extract fields using regex - more robust for malformed JSON
                 try:
                     # Extract case
                     case_match = re.search(r'"الحالة"\s*:\s*"([^"]+)"', answer)
                     case = case_match.group(1) if case_match else "غير مؤكد"
                     
-                    # Extract talk - handle multi-line strings
-                    # First try to find talk field with its value
-                    talk_match = re.search(r'"talk"\s*:\s*"((?:[^"\\]|\\.)*)"', answer, re.DOTALL)
-                    if not talk_match:
-                        # Try simpler pattern
-                        talk_match = re.search(r'"talk"\s*:\s*"([^"]*)"', answer)
-                    talk = talk_match.group(1) if talk_match else "لا توجد معلومات متاحة."
-                    # Clean up escape sequences
-                    talk = talk.replace('\\"', '"').replace('\\n', '\n').replace('\\\\', '\\')
+                    # Extract talk - handle multi-line strings more carefully
+                    # Find the talk field and extract everything until "sources" or end
+                    talk_start = answer.find('"talk": "')
+                    talk = ""
+                    if talk_start != -1:
+                        talk_value_start = talk_start + 9
+                        # Find where talk should end (before "sources" or closing brace)
+                        sources_pos = answer.find(',\n  "sources"', talk_value_start)
+                        if sources_pos == -1:
+                            sources_pos = answer.find(',\n  "sources"', talk_value_start)
+                        if sources_pos == -1:
+                            sources_pos = answer.find('"sources"', talk_value_start)
+                        if sources_pos == -1:
+                            # Find the closing brace before "sources" array
+                            end_brace = answer.rfind('}', talk_value_start)
+                            if end_brace != -1:
+                                # Look backwards for the end of talk string
+                                before_sources = answer[talk_value_start:end_brace]
+                                # Find the last quote before sources or end
+                                last_quote = before_sources.rfind('"')
+                                if last_quote != -1:
+                                    talk = before_sources[:last_quote]
+                                else:
+                                    talk = before_sources.rstrip().rstrip(',').rstrip()
+                        else:
+                            talk = answer[talk_value_start:sources_pos].rstrip().rstrip(',').rstrip()
+                            # Remove trailing quote if exists
+                            if talk.endswith('"'):
+                                talk = talk[:-1]
+                        # Clean up escape sequences
+                        talk = talk.replace('\\"', '"').replace('\\n', '\n').replace('\\\\', '\\').strip()
+                    else:
+                        talk = "لا توجد معلومات متاحة."
                     
-                    # Extract sources array
-                    sources_match = re.search(r'"sources"\s*:\s*\[(.*?)\]', answer, re.DOTALL)
+                    # Extract sources array - more robust pattern
                     sources = []
+                    sources_match = re.search(r'"sources"\s*:\s*\[(.*?)\]', answer, re.DOTALL)
                     if sources_match:
                         sources_str = sources_match.group(1)
-                        # Try to parse individual source objects
-                        source_matches = re.findall(r'\{[^}]*\}', sources_str)
-                        for src_match in source_matches:
-                            title_match = re.search(r'"title"\s*:\s*"([^"]*)"', src_match)
-                            url_match = re.search(r'"url"\s*:\s*"([^"]*)"', src_match)
-                            if title_match and url_match:
+                        # Try multiple patterns to extract sources
+                        source_pattern = r'\{\s*"title"\s*:\s*"([^"]+)"\s*,\s*"url"\s*:\s*"([^"]+)"'
+                        for src_match in re.finditer(source_pattern, sources_str):
+                            sources.append({
+                                "title": src_match.group(1),
+                                "url": src_match.group(2)
+                            })
+                        
+                        # If no sources found, try with different spacing
+                        if not sources:
+                            source_pattern2 = r'"title"\s*:\s*"([^"]+)"\s*[,\s]+\s*"url"\s*:\s*"([^"]+)"'
+                            for src_match in re.finditer(source_pattern2, sources_str):
                                 sources.append({
-                                    "title": title_match.group(1),
-                                    "url": url_match.group(1)
+                                    "title": src_match.group(1),
+                                    "url": src_match.group(2)
                                 })
+                    
+                    # If still no sources and case is "حقيقي", use original search results
+                    if not sources and case.lower() in {"حقيقي", "true", "vrai", "verdadero", "pravda"}:
+                        # Use original search results as sources
+                        sources = [{"title": r.get("title", ""), "url": r.get("link", ""), "snippet": r.get("snippet", "")} for r in results[:5]]
+                        print(f"📚 Using {len(sources)} original search results as sources")
                     
                     parsed = {
                         "الحالة": case,
                         "talk": talk,
                         "sources": sources
                     }
+                    print("✅ Extracted JSON using regex fallback")
                 except Exception as parse_error:
-                    print(f"❌ Failed to parse JSON with all strategies: {parse_error}")
-                    # Return uncertain result as fallback
-                    return {
-                        "case": "غير مؤكد",
-                        "talk": "حدث خطأ أثناء معالجة نتائج التحقق. يرجى المحاولة مرة أخرى.",
-                        "sources": [],
-                        "news_article": None,
-                        "x_tweet": None,
-                        "source_statistics": {}
-                    }
+                    print(f"⚠️ Regex extraction also failed: {parse_error}")
+                    parsed = None
+            
+            # Strategy 3: Final fallback - return uncertain result
+            if parsed is None:
+                print(f"❌ Failed to parse JSON with all strategies")
+                # Return uncertain result as fallback
+                return {
+                    "case": "غير مؤكد",
+                    "talk": "حدث خطأ أثناء معالجة نتائج التحقق. يرجى المحاولة مرة أخرى.",
+                    "sources": [],
+                    "news_article": None,
+                    "x_tweet": None,
+                    "source_statistics": {}
+                }
 
         case = parsed.get("الحالة", "غير مؤكد")
         talk = parsed.get("talk", "")
         sources = parsed.get("sources", [])
+        
+        # Ensure sources are returned for "حقيقي" cases
+        # If no sources found and case is "حقيقي", use original search results
+        if not sources and case.lower() in {"حقيقي", "true", "vrai", "verdadero", "pravda"}:
+            sources = [{"title": r.get("title", ""), "url": r.get("link", ""), "snippet": r.get("snippet", "")} for r in results[:5]]
+            print(f"📚 Using {len(sources)} original search results as sources for verified claim")
 
         uncertain_terms = {
             "ar": {"غير مؤكد"},

@@ -56,17 +56,18 @@ class ImageFactCheckView(View):
             # Analyze image (اللغة دائماً عربية)
             result = await check_image_fact_and_ai_async(image_file)
             
-            # Check if there was an error
-            if 'error' in result:
+            # Check if there was an error or model refused
+            if 'error' in result or result.get("is_ai_generated") is None and result.get("is_photoshopped") is None:
                 return JsonResponse(
                     {
                         "ok": False,
                         "error": result.get("message", "حدث خطأ أثناء تحليل الصورة"),
                         "is_ai_generated": result.get("is_ai_generated"),
                         "is_photoshopped": result.get("is_photoshopped"),
-                        "is_fake": result.get("is_fake")
+                        "is_fake": result.get("is_fake"),
+                        "message": result.get("message", "حدث خطأ أثناء تحليل الصورة")
                     },
-                    status=500,
+                    status=200,  # Return 200 with ok: false instead of 500
                 )
             
             # Return response (بالعربية فقط)

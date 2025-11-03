@@ -476,31 +476,45 @@ def is_news_content(text: str) -> tuple[bool, str]:
     If not news-related, returns (False, reason in Arabic).
     """
     try:
-        validation_prompt = """You are a strict news content validator for a fact-checking API. Only accept content that is clearly within a journalistic/news context.
+        validation_prompt = """You are a news content validator for a fact-checking API. Your role is to distinguish between NEWSWORTHY EVENTS/OFFICIAL NEWS and non-journalistic content.
 
-STRICTLY ACCEPT (news/journalistic content only):
-- News headlines, articles, or reports about current events
-- Political, social, economic, sports, or international news
-- Official statements, declarations, or announcements from governments, organizations, or public institutions
-- Events, incidents, or developments that are newsworthy and part of public discourse
-- Claims or allegations about public figures, institutions, or matters of public interest
-- News-worthy statements that could appear in a news agency report
+✅ ACCEPT (News/Official Events - MUST ACCEPT):
+- Government announcements, official projects, infrastructure projects (e.g., "إنشاء قطار يربط الدوحة بالرياض" = YES - official government project)
+- Political news, diplomatic events, international relations
+- Economic news, business announcements, market developments
+- Social events that are newsworthy (public events, official ceremonies)
+- Sports news, official matches, tournament results
+- Official statements from governments, ministries, organizations
+- Public events, inaugurations, official launches
+- Any event, project, or announcement that would appear in a news agency report
+- Headlines about current events, incidents, or developments
 
-STRICTLY REJECT (anything outside journalistic/news context):
-- Personal opinions, feelings, or subjective statements without news context
-- Casual conversations, everyday small talk, or personal messages
-- Personal advice, general knowledge questions, or educational content
-- Fiction, stories, poetry, or creative writing
-- Technical tutorials, how-to guides, or instructional content
-- Personal greetings, casual inquiries, or social interactions
-- Philosophical discussions or abstract concepts without connection to news/events
-- Questions about general topics that are not news-related
-- Any text that would not fit in a professional news report
+❌ REJECT (Non-journalistic content - MUST REJECT):
+- How-to guides, recipes, cooking instructions (e.g., "طريقة عمل المحشي" = NO - instructional content)
+- Personal opinions or feelings without news context
+- Casual conversations, greetings, personal messages
+- Educational content, tutorials, instructional materials
+- General knowledge questions
+- Fiction, stories, poetry, creative writing
+- Personal advice or tips
+- Philosophical or abstract discussions without news connection
+- Everyday small talk
 
-IMPORTANT: Be strict. If there's any doubt whether the text is within a journalistic/news context, reject it.
+CRITICAL RULES:
+1. If the text describes an EVENT, PROJECT, ANNOUNCEMENT, or OFFICIAL STATEMENT → ACCEPT (yes)
+2. If the text is INSTRUCTIONAL, EDUCATIONAL, or PERSONAL → REJECT (no)
+3. Government projects/infrastructure = YES (e.g., building trains, airports, bridges)
+4. Official announcements = YES
+5. Recipes/tutorials/how-to = NO
+
+EXAMPLES:
+- "إنشاء قطار يربط الدوحة بالرياض" → YES (official government project/news event)
+- "وزارة الخارجية تعلن عن اتفاقية جديدة" → YES (official announcement)
+- "طريقة عمل المحشي" → NO (recipe/instructional)
+- "كيف أتعلم البرمجة" → NO (educational question)
 
 Respond with ONLY one word: "yes" if it's news/journalistic content, "no" if it's not.
-Then on a new line, provide a brief reason in Arabic explaining why it's not news content."""
+Then on a new line, provide a brief reason in Arabic explaining your decision."""
 
         resp = client.chat.completions.create(
             model=OPENAI_MODEL,
@@ -789,6 +803,7 @@ CURRENT_DATE: {datetime.now().strftime('%Y-%m-%d')}
                 {"role": "user", "content": user_msg},
             ],
             temperature=0.2,
+            response_format={"type": "json_object"},
         )
         answer = (resp.choices[0].message.content or "").strip()
         if answer.startswith("```"):
