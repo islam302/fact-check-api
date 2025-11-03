@@ -476,44 +476,60 @@ def is_news_content(text: str) -> tuple[bool, str]:
     If not news-related, returns (False, reason in Arabic).
     """
     try:
-        validation_prompt = """You are a news content validator for a fact-checking API. Your role is to distinguish between NEWSWORTHY EVENTS/OFFICIAL NEWS and non-journalistic content.
+        validation_prompt = """You are a news content validator for a FACT-CHECKING API. Your job is to distinguish between NEWS CLAIMS/STATEMENTS and non-news content.
 
-✅ ACCEPT (News/Official Events - MUST ACCEPT):
-- Government announcements, official projects, infrastructure projects (e.g., "إنشاء قطار يربط الدوحة بالرياض" = YES - official government project)
-- Political news, diplomatic events, international relations
-- Economic news, business announcements, market developments
-- Social events that are newsworthy (public events, official ceremonies)
-- Sports news, official matches, tournament results
-- Official statements from governments, ministries, organizations
-- Public events, inaugurations, official launches
-- Any event, project, or announcement that would appear in a news agency report
-- Headlines about current events, incidents, or developments
+⚠️ KEY DISTINCTION: Accept STATEMENTS/CLAIMS about events, NOT personal questions asking for opinions or information.
 
-❌ REJECT (Non-journalistic content - MUST REJECT):
-- How-to guides, recipes, cooking instructions (e.g., "طريقة عمل المحشي" = NO - instructional content)
-- Personal opinions or feelings without news context
-- Casual conversations, greetings, personal messages
-- Educational content, tutorials, instructional materials
+✅ ACCEPT (News Claims/Statements - Declarative sentences):
+- STATEMENTS about events (e.g., "مقتل ترامب" = YES - it's a claim/statement)
+- CLAIMS that something happened or will happen
+- NEWS HEADLINES or STATEMENTS (true or false, verified or rumor)
+- Declarative sentences about events, people, places
+- ANY CLAIM that can be fact-checked (rumor, hoax, news, announcement)
+- Government announcements, official projects
+- Political events, diplomatic news
+- Economic news, business developments
+- Accidents, crimes, incidents, deaths
+- Sports events, results, announcements
+- Celebrity news, scandals, events
+- Breaking news, viral claims, rumors
+
+❌ REJECT (Non-news content):
+- QUESTIONS asking for opinions (e.g., "ما رأيك في الطقس اليوم؟" = NO - asking for opinion)
+- QUESTIONS asking for information (e.g., "كيف الطقس اليوم؟" = NO - general inquiry)
+- How-to guides, recipes (e.g., "طريقة عمل المحشي" = NO)
+- Casual conversations, greetings ("مرحبا، كيف حالك؟" = NO)
+- Educational tutorials ("كيف أتعلم البرمجة" = NO)
+- Personal questions without specific claim
+- Philosophical discussions without news context
 - General knowledge questions
-- Fiction, stories, poetry, creative writing
-- Personal advice or tips
-- Philosophical or abstract discussions without news connection
-- Everyday small talk
+- Requests for advice or tips
 
-CRITICAL RULES:
-1. If the text describes an EVENT, PROJECT, ANNOUNCEMENT, or OFFICIAL STATEMENT → ACCEPT (yes)
-2. If the text is INSTRUCTIONAL, EDUCATIONAL, or PERSONAL → REJECT (no)
-3. Government projects/infrastructure = YES (e.g., building trains, airports, bridges)
-4. Official announcements = YES
-5. Recipes/tutorials/how-to = NO
+🔑 THE KEY TEST: Is it a STATEMENT/CLAIM about something that happened or will happen?
+- If YES → ACCEPT (it can be fact-checked)
+- If it's a QUESTION asking for opinion/info → REJECT (not a claim)
 
-EXAMPLES:
-- "إنشاء قطار يربط الدوحة بالرياض" → YES (official government project/news event)
-- "وزارة الخارجية تعلن عن اتفاقية جديدة" → YES (official announcement)
-- "طريقة عمل المحشي" → NO (recipe/instructional)
+EXAMPLES - ACCEPT ✅:
+- "مقتل ترامب" → YES (statement/claim about an event)
+- "ترامب توفي اليوم" → YES (statement/claim)
+- "زلزال يضرب تركيا" → YES (statement about event)
+- "إنشاء قطار يربط الدوحة بالرياض" → YES (statement about project)
+- "حريق في مبنى برج خليفة" → YES (statement about incident)
+- "فوز الهلال بالدوري" → YES (statement about result)
+- "وزير الخارجية يستقيل" → YES (statement about event)
+
+EXAMPLES - REJECT ❌:
+- "ما رأيك في الطقس اليوم؟" → NO (question asking for opinion)
+- "كيف الطقس اليوم؟" → NO (question asking for information)
+- "هل تعتقد أن الاقتصاد سيتحسن؟" → NO (opinion question)
+- "طريقة عمل المحشي" → NO (how-to/recipe)
 - "كيف أتعلم البرمجة" → NO (educational question)
+- "مرحبا، كيف حالك؟" → NO (casual greeting)
+- "ما هي أفضل طريقة للسفر؟" → NO (advice question)
 
-Respond with ONLY one word: "yes" if it's news/journalistic content, "no" if it's not.
+⚠️ CRITICAL: A CLAIM/STATEMENT can be fact-checked. A QUESTION asking for opinion/info cannot.
+
+Respond with ONLY one word: "yes" if it's a news claim/statement, "no" if it's not.
 Then on a new line, provide a brief reason in Arabic explaining your decision."""
 
         resp = client.chat.completions.create(
@@ -753,12 +769,23 @@ def check_fact_simple(claim_text: str, k_sources: int = 5, generate_news: bool =
         print(f"🧠 Fact-checking: {processed_claim}")
         lang = _lang_hint_from_claim(processed_claim)
 
-        results = []
+        # Collect results from all sources and remove duplicates
+        all_results = []
         for domain in NEWS_AGENCIES:
             domain_results = _fetch_serp(f"{processed_claim} site:{domain}", extra={"hl": lang} if lang else None, num=2)
-            results += domain_results
+            all_results.extend(domain_results)
         google_results = _fetch_serp(processed_claim, extra={"hl": lang} if lang else None, num=k_sources)
-        results += google_results
+        all_results.extend(google_results)
+        
+        # Remove duplicates based on URL
+        results = []
+        seen_urls = set()
+        for result in all_results:
+            url = result.get("link", "")
+            # Only add if URL is not empty and not seen before
+            if url and url not in seen_urls:
+                results.append(result)
+                seen_urls.add(url)
 
         print(f"🔎 Total combined results: {len(results)}")
 
@@ -816,6 +843,17 @@ CURRENT_DATE: {datetime.now().strftime('%Y-%m-%d')}
         case = parsed.get("الحالة", "غير مؤكد")
         talk = parsed.get("talk", "")
         sources = parsed.get("sources", [])
+        
+        # Remove duplicates from sources based on URL
+        if sources:
+            unique_sources = []
+            seen_source_urls = set()
+            for source in sources:
+                source_url = source.get("url", "")
+                if source_url and source_url not in seen_source_urls:
+                    unique_sources.append(source)
+                    seen_source_urls.add(source_url)
+            sources = unique_sources
 
         uncertain_terms = {
             "ar": {"غير مؤكد"},
@@ -848,7 +886,7 @@ CURRENT_DATE: {datetime.now().strftime('%Y-%m-%d')}
         # But if preserve_sources is true, use the original search results instead of AI sources
         if is_uncertain:
             if preserve_sources:
-                # Use original search results when preserving sources
+                # Use original search results when preserving sources (already deduplicated)
                 sources = [{"title": r.get("title", ""), "url": r.get("link", ""), "snippet": r.get("snippet", "")} for r in results]
             else:
                 # Clear sources as per original logic
