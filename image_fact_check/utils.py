@@ -81,21 +81,18 @@ async def _fetch_serp_async(session: aiohttp.ClientSession, query: str, extra: D
 
 async def check_image_fact_and_ai_async(image_file, lang: Optional[str] = None) -> dict:
     """
-    Analyze an image to:
-    1. Fact-check the content shown in the image
-    2. Determine if the image is AI-generated
+    تحليل الصورة لتحديد إذا كانت مصنوعة بالذكاء الاصطناعي، معدلة بـ Photoshop، أو مزورة
     
     Args:
-        image_file: Django UploadedFile or file-like object containing the image
-        lang: Optional language hint (ar, en, fr, etc.). Auto-detected if None.
+        image_file: Django UploadedFile أو ملف صورة
+        lang: (مهمل - سيتم استخدام العربية دائماً)
     
     Returns:
-        dict with keys:
-        - is_ai_generated: bool
-        - ai_confidence: float (0.0-1.0)
-        - fact_check: dict with case, talk, sources
-        - image_analysis: str (detailed description)
-        - language: str (detected language)
+        dict مع:
+        - is_ai_generated: bool (إذا كانت الصورة مصنوعة بالذكاء الاصطناعي)
+        - is_photoshopped: bool (إذا كانت الصورة معدلة بـ Photoshop أو برامج التعديل)
+        - is_fake: bool (إذا كانت الصورة مزورة بأي طريقة)
+        - message: str (رسالة بالعربية توضح النتيجة بالتفصيل)
     """
     try:
         print("🖼️ Starting image analysis...")
@@ -118,99 +115,69 @@ async def check_image_fact_and_ai_async(image_file, lang: Optional[str] = None) 
         image.save(buffered, format="JPEG", quality=85)
         img_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
         
-        # Auto-detect language if not provided
-        if lang is None:
-            print("🌐 Detecting language from image content...")
-            try:
-                # First, get a basic description to detect language
-                basic_response = await async_client.chat.completions.create(
-                    model=OPENAI_MODEL,
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": "Describe what you see in the image briefly in one sentence. Use the same language as any text visible in the image, or English if no text is visible."
-                        },
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:image/jpeg;base64,{img_base64}"
-                                    }
-                                }
-                            ]
-                        }
-                    ],
-                    max_tokens=50
-                )
-                description_text = basic_response.choices[0].message.content or ""
-                lang = await _lang_hint_from_claim_async(description_text)
-                print(f"✅ Detected language: {lang}")
-            except Exception as e:
-                print(f"⚠️ Language detection failed: {e}, defaulting to 'en'")
-                lang = "en"
+        # استخدام العربية دائماً
+        lang = "ar"
         
-        # Create comprehensive analysis prompt
-        IMAGE_ANALYSIS_PROMPT = f"""
-You are an expert image analyst and fact-checker specializing in:
-1. **AI-Generated Image Detection**: Identifying if images are created by AI (DALL-E, Midjourney, Stable Diffusion, etc.)
-2. **Content Fact-Checking**: Verifying claims, text, and information visible in images
-3. **Image Authenticity Assessment**: Detecting signs of manipulation, editing, or fabrication
+        # إنشاء موجه شامل للتحقق من AI، Photoshop، والتلاعب
+        IMAGE_ANALYSIS_PROMPT = """
+أنت خبير في اكتشاف الصور المزورة والمعدلة.
 
-**ANALYSIS TASKS:**
-Analyze the provided image and respond with a JSON object containing:
+مهمتك: تحديد إذا كانت الصورة:
+1. مصنوعة بالذكاء الاصطناعي (AI-generated)
+2. معدلة أو مزورة باستخدام برامج مثل Photoshop
+3. مزورة بطريقة أخرى (deepfake، تركيب، تلاعب)
 
-1. **AI Generation Detection:**
-   - Determine if the image appears to be AI-generated
-   - Look for telltale signs: unnatural details, perfect symmetry, unusual artifacts, text rendering issues, inconsistent lighting, unrealistic proportions, etc.
-   - Provide confidence level (0.0 to 1.0) where 1.0 means definitely AI-generated, 0.0 means definitely real photo
-   - Consider: AI images often have perfect/complex patterns, unusual details, text rendering problems, inconsistent physics, etc.
+**علامات الصور المصنوعة بالذكاء الاصطناعي:**
+- تفاصيل غير طبيعية أو متناسقة بشكل مثالي
+- مشاكل في عرض النصوص (أحرف مشوهة، كلمات غير صحيحة)
+- ألوان أو إضاءة غير متسقة
+- نسب غير واقعية للأجسام
+- أنماط مثالية أو متكررة بشكل غير طبيعي
+- أخطاء في الفيزياء أو المنطق
 
-2. **Content Fact-Checking:**
-   - Extract any text, claims, or information visible in the image
-   - Assess if claims made in the image are factual or require verification
-   - Provide verdict: "حقيقي" (True), "غير مؤكد" (Uncertain), or "مزيف" (False/Misleading) in Arabic, or "True"/"Uncertain"/"False" in English
-   - Explain your reasoning based on visual evidence
+**علامات الصور المعدلة بـ Photoshop أو برامج التعديل:**
+- حواف غير طبيعية حول الكائنات المضافة أو المحذوفة
+- اختلافات في جودة الدقة أو الوضوح بين أجزاء الصورة
+- أنماط ضغط مختلفة في أجزاء مختلفة من الصورة
+- إضاءة أو ظلال غير متسقة مع البيئة
+- ألوان أو تدرجات لا تتطابق مع السياق
+- تكرار غير طبيعي للنماذج أو الأنماط
+- أخطاء في المنظور أو التلاعب بالأحجام
+- علامات استخدام أدوات Clone Stamp أو Healing Brush
+- دمج عناصر من صور مختلفة مع اختلافات واضحة
 
-3. **Detailed Image Description:**
-   - Provide a comprehensive description of what's shown in the image
-   - Note any text, symbols, logos, or identifiable elements
-   - Describe context, setting, and notable features
+**علامات الصور المزورة (Deepfake أو تركيب):**
+- عدم تطابق بين الوجه والجسم (ألوان البشرة، الإضاءة)
+- مشاكل في محاذاة الوجه مع الرأس
+- تشوهات حول حواف الوجه المزروع
+- حركة غير طبيعية في الفيديو (إذا كان الفيديو)
+- اختلافات في جودة الأجزاء المختلفة
+- تباين غير منطقي بين عناصر الصورة
 
-**LANGUAGE POLICY:**
-- Respond ENTIRELY in {lang.upper()} language
-- Use localized terms for verdicts:
-  - Arabic: حقيقي / غير مؤكد / مزيف
-  - English: True / Uncertain / False
-  - French: Vrai / Incertain / Faux
-  - Spanish: Verdadero / Incierto / Falso
+**الصور الحقيقية الأصلية:**
+- تفاصيل طبيعية وواقعية
+- إضاءة وظلال متسقة في جميع أجزاء الصورة
+- نصوص واضحة ومقروءة (إن وجدت)
+- نسب واقعية
+- جودة موحدة في جميع أجزاء الصورة
+- حواف طبيعية حول الكائنات
 
-**RESPONSE FORMAT (JSON ONLY):**
-{{
+**التنسيق المطلوب (JSON فقط):**
+{
   "is_ai_generated": true/false,
-  "ai_confidence": 0.0-1.0,
-  "ai_indicators": ["list of specific signs that suggest AI generation"],
-  "fact_check": {{
-    "case": "حقيقي/غير مؤكد/مزيف" or "True/Uncertain/False",
-    "talk": "Detailed explanation of fact-check results (~300 words in {lang.upper()})",
-    "extracted_text": "Any text visible in the image",
-    "claims": ["List of specific claims made in the image"]
-  }},
-  "image_analysis": {{
-    "description": "Comprehensive description of image content",
-    "context": "Context and setting of the image",
-    "notable_elements": ["List of important elements visible"]
-  }},
-  "manipulation_signs": ["Any signs of editing or manipulation detected"]
-}}
+  "is_photoshopped": true/false,
+  "is_fake": true/false,
+  "confidence": 0.0-1.0,
+  "message": "رسالة بالعربية توضح النتيجة بالتفصيل (مثل: 'الصورة معدلة باستخدام Photoshop' أو 'الصورة مزورة' أو 'الصورة حقيقية وأصلية')",
+  "detection_details": "تفاصيل العلامات المكتشفة (بالعربية)"
+}
 
-**CRITICAL INSTRUCTIONS:**
-- Output ONLY valid JSON, no additional text
-- Be thorough in analysis but concise in response
-- If text in image is in different language, note it
-- Consider metadata implications (watermarks, timestamps visible in image)
-- For AI detection, look for: perfect details, unusual patterns, text rendering issues, inconsistent shadows/lighting, unnatural proportions
+**تعليمات مهمة:**
+- أجب فقط بالعربية
+- أعد JSON صحيح فقط بدون أي نص إضافي
+- كن دقيقاً في التحليل
+- إذا كانت الصورة مزورة ولكنك غير متأكد من الطريقة، ضع is_fake=true
+- is_fake=true يشمل جميع أنواع التزوير (AI، Photoshop، تركيب، إلخ)
 """
         
         print("🤖 Sending image to OpenAI Vision API for analysis...")
@@ -233,13 +200,13 @@ Analyze the provided image and respond with a JSON object containing:
                         },
                         {
                             "type": "text",
-                            "text": f"Analyze this image and provide fact-checking and AI-generation detection. Language: {lang.upper()}"
+                            "text": "حلل هذه الصورة وحدد إذا كانت: 1) مصنوعة بالذكاء الاصطناعي، 2) معدلة بـ Photoshop أو برامج التعديل، 3) مزورة بطريقة أخرى. أعد الرد بالعربية فقط."
                         }
                     ]
                 }
             ],
-            temperature=0.2,
-            max_tokens=1500
+            temperature=0.1,
+            max_tokens=400
         )
         
         answer = (response.choices[0].message.content or "").strip()
@@ -260,93 +227,56 @@ Analyze the provided image and respond with a JSON object containing:
             parsed = json.loads(answer)
         except json.JSONDecodeError as e:
             print(f"⚠️ JSON parsing error: {e}")
-            print(f"📄 Response content (first 500 chars): {answer[:500]}")
+            print(f"📄 Response content: {answer[:500]}")
             # Fallback response
             parsed = {
                 "is_ai_generated": None,
-                "ai_confidence": 0.5,
-                "ai_indicators": ["Unable to analyze"],
-                "fact_check": {
-                    "case": "غير مؤكد" if lang == "ar" else "Uncertain",
-                    "talk": "حدث خطأ أثناء تحليل الصورة. يرجى المحاولة مرة أخرى." if lang == "ar" else "An error occurred during image analysis. Please try again.",
-                    "extracted_text": "",
-                    "claims": []
-                },
-                "image_analysis": {
-                    "description": "Unable to analyze image",
-                    "context": "",
-                    "notable_elements": []
-                },
-                "manipulation_signs": []
+                "is_photoshopped": None,
+                "is_fake": None,
+                "confidence": 0.5,
+                "message": "حدث خطأ أثناء تحليل الصورة. يرجى المحاولة مرة أخرى.",
+                "detection_details": ""
             }
         
-        # Search for sources if there are specific claims
-        fact_check_result = parsed.get("fact_check", {})
-        claims = fact_check_result.get("claims", [])
-        extracted_text = fact_check_result.get("extracted_text", "")
+        # استخراج المعلومات
+        is_ai = parsed.get("is_ai_generated", False)
+        is_photoshopped = parsed.get("is_photoshopped", False)
+        is_fake = parsed.get("is_fake", False)
+        confidence = parsed.get("confidence", parsed.get("ai_confidence", 0.5))
+        message = parsed.get("message", "")
+        detection_details = parsed.get("detection_details", "")
         
-        sources = []
-        if extracted_text or claims:
-            # Try to fact-check the extracted text
-            query_text = extracted_text or " ".join(claims[:2])
-            if query_text.strip():
-                print(f"🔍 Fact-checking extracted content: {query_text[:100]}...")
-                try:
-                    async with aiohttp.ClientSession() as session:
-                        # Quick search for verification
-                        search_results = await _fetch_serp_async(session, query_text, num=5)
-                        sources = [
-                            {"title": r.get("title", ""), "url": r.get("link", ""), "snippet": r.get("snippet", "")}
-                            for r in search_results[:5]
-                        ]
-                        print(f"✅ Found {len(sources)} sources for verification")
-                except Exception as search_error:
-                    print(f"⚠️ Source search failed: {search_error}")
+        # إنشاء رسالة واضحة إذا لم تكن موجودة
+        if not message:
+            if is_fake:
+                if is_ai:
+                    message = "الصورة مصنوعة بالذكاء الاصطناعي"
+                elif is_photoshopped:
+                    message = "الصورة معدلة أو مزورة باستخدام برامج التعديل مثل Photoshop"
+                else:
+                    message = "الصورة مزورة أو معدلة"
+            else:
+                message = "الصورة حقيقية وأصلية"
+        
+        # إضافة التفاصيل للرسالة
+        if detection_details and detection_details not in message:
+            message = f"{message}\n\n{detection_details}"
         
         return {
-            "is_ai_generated": parsed.get("is_ai_generated", False),
-            "ai_confidence": parsed.get("ai_confidence", 0.5),
-            "ai_indicators": parsed.get("ai_indicators", []),
-            "fact_check": {
-                "case": fact_check_result.get("case", "غير مؤكد" if lang == "ar" else "Uncertain"),
-                "talk": fact_check_result.get("talk", ""),
-                "extracted_text": extracted_text,
-                "claims": claims,
-                "sources": sources
-            },
-            "image_analysis": parsed.get("image_analysis", {}),
-            "manipulation_signs": parsed.get("manipulation_signs", []),
-            "language": lang
+            "is_ai_generated": is_ai,
+            "is_photoshopped": is_photoshopped,
+            "is_fake": is_fake,
+            "message": message.strip()
         }
         
     except Exception as e:
         print(f"❌ Error in image analysis: {e}")
         print(traceback.format_exc())
-        error_by_lang = {
-            "ar": "حدث خطأ أثناء تحليل الصورة",
-            "en": "An error occurred during image analysis",
-            "fr": "Une erreur s'est produite lors de l'analyse de l'image",
-            "es": "Ocurrió un error durante el análisis de la imagen"
-        }
-        lang = lang or "en"
         return {
             "is_ai_generated": None,
-            "ai_confidence": 0.5,
-            "ai_indicators": [],
-            "fact_check": {
-                "case": "غير مؤكد" if lang == "ar" else "Uncertain",
-                "talk": error_by_lang.get(lang, error_by_lang["en"]),
-                "extracted_text": "",
-                "claims": [],
-                "sources": []
-            },
-            "image_analysis": {
-                "description": error_by_lang.get(lang, error_by_lang["en"]),
-                "context": "",
-                "notable_elements": []
-            },
-            "manipulation_signs": [],
-            "language": lang,
+            "is_photoshopped": None,
+            "is_fake": None,
+            "message": "حدث خطأ أثناء تحليل الصورة. يرجى المحاولة مرة أخرى.",
             "error": str(e)
         }
 
