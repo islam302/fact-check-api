@@ -469,6 +469,63 @@ def _lang_hint_from_claim(text: str) -> str:
     ratio = ar_count / max(1, len(text))
     return "ar" if ratio >= 0.15 else "en"
 
+def is_news_content(text: str) -> tuple[bool, str]:
+    """
+    Validate if the input text is news/journalistic content.
+    Returns (is_valid, reason) tuple.
+    If not news-related, returns (False, reason in Arabic).
+    """
+    try:
+        validation_prompt = """You are a strict news content validator for a fact-checking API. Only accept content that is clearly within a journalistic/news context.
+
+STRICTLY ACCEPT (news/journalistic content only):
+- News headlines, articles, or reports about current events
+- Political, social, economic, sports, or international news
+- Official statements, declarations, or announcements from governments, organizations, or public institutions
+- Events, incidents, or developments that are newsworthy and part of public discourse
+- Claims or allegations about public figures, institutions, or matters of public interest
+- News-worthy statements that could appear in a news agency report
+
+STRICTLY REJECT (anything outside journalistic/news context):
+- Personal opinions, feelings, or subjective statements without news context
+- Casual conversations, everyday small talk, or personal messages
+- Personal advice, general knowledge questions, or educational content
+- Fiction, stories, poetry, or creative writing
+- Technical tutorials, how-to guides, or instructional content
+- Personal greetings, casual inquiries, or social interactions
+- Philosophical discussions or abstract concepts without connection to news/events
+- Questions about general topics that are not news-related
+- Any text that would not fit in a professional news report
+
+IMPORTANT: Be strict. If there's any doubt whether the text is within a journalistic/news context, reject it.
+
+Respond with ONLY one word: "yes" if it's news/journalistic content, "no" if it's not.
+Then on a new line, provide a brief reason in Arabic explaining why it's not news content."""
+
+        resp = client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[
+                {"role": "system", "content": validation_prompt},
+                {"role": "user", "content": text.strip()},
+            ],
+            temperature=0.1,
+            max_tokens=100
+        )
+        
+        answer = (resp.choices[0].message.content or "").strip().lower()
+        lines = answer.split('\n', 1)
+        is_valid = lines[0].strip() == "yes"
+        reason = lines[1].strip() if len(lines) > 1 else ""
+        
+        if not is_valid:
+            return (False, reason or "النص المقدم لا يتعلق بالأخبار أو السياق الصحفي")
+        return (True, "")
+        
+    except Exception as e:
+        # On error, allow through but log it
+        print(f"⚠️ Error validating news content: {e}")
+        return (True, "")  # Allow through on error to avoid blocking valid requests
+
 def _fetch_serp(query: str, extra: Dict | None = None, num: int = 10) -> List[Dict]:
     url = "https://serpapi.com/search.json"
     params = {

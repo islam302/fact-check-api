@@ -11,7 +11,8 @@ import asyncio
 from .utils_async import (
     check_fact_simple_async,
     async_client,
-    OPENAI_MODEL
+    OPENAI_MODEL,
+    is_news_content_async
 )
 
 # Keep sync imports for backward compatibility endpoints
@@ -61,6 +62,14 @@ class FactCheckWithOpenaiView(View):
             if not query:
                 return JsonResponse(
                     {"ok": False, "error": "query is required"},
+                    status=400,
+                )
+
+            # ✅ التحقق من أن النص متعلق بالأخبار فقط
+            is_valid, reason = await is_news_content_async(query)
+            if not is_valid:
+                return JsonResponse(
+                    {"ok": False, "error": reason or "النص المقدم لا يتعلق بالأخبار أو السياق الصحفي. يرجى إرسال محتوى إخباري فقط."},
                     status=400,
                 )
 
