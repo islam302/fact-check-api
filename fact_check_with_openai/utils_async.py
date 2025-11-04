@@ -509,144 +509,22 @@ FACT_PROMPT_SYSTEM = (
     '  \"sources\": [ {\"title\": \"<title>\", \"url\": \"<url>\"}, ... ]\n'
     "}\n\n"
 
+    "SOURCES RULES:\n"
+    "1) Include ONLY sources that DIRECTLY support or relate to the claim.\n"
+    "2) Do NOT include unrelated sources, even if they mention similar topics.\n"
+    "3) If a source title/content is NOT relevant to the claim → DO NOT include it.\n"
+    "4) Maximum 10 sources (prioritize the most relevant and credible ones).\n"
+    "5) Remove duplicate URLs - include each source only once.\n"
+    "6) Each source must have both title AND url.\n\n"
+
     "FINAL RULES:\n"
     "1) Output STRICTLY valid JSON (UTF-8). No extra commentary before or after.\n"
     "2) If the claim is Uncertain → keep 'sources' as an empty array [].\n"
-    "3) If the claim is True → include ALL confirming sources (no fixed limit).\n"
+    "3) If the claim is True → include ONLY RELEVANT confirming sources (max 10).\n"
     "4) Do not fabricate URLs or titles; use only provided sources.\n"
     "5) REMEMBER: You can ONLY return True or Uncertain. There is NO False option.\n"
+    "6) ONLY include sources that are DIRECTLY related to the specific claim.\n"
 )
-
-
-def classify_source_support(source: dict, claim_text: str = "") -> str:
-    """
-    Classify a source as 'supporting' (مؤيد), 'opposing' (معارض), or 'neutral' (محايد)
-    Based on content analysis and alignment with the claim
-    """
-    url = source.get("url", "").lower()
-    title = source.get("title", "").lower()
-    snippet = source.get("snippet", "").lower()
-    claim_lower = claim_text.lower()
-    
-    # Supporting indicators (مؤيد)
-    supporting_indicators = [
-        'confirm', 'confirmed', 'verify', 'verified', 'true', 'accurate', 'correct',
-        'support', 'back', 'prove', 'evidence', 'fact', 'reality', 'actual',
-        'official', 'announced', 'declared', 'stated', 'reported',
-        'تأكيد', 'تأكد', 'صحيح', 'حقيقي', 'دعم', 'إثبات', 'دليل', 'واقع',
-        'رسمي', 'أعلن', 'صرح', 'ذكر', 'أفاد'
-    ]
-    
-    # Opposing indicators (معارض)
-    opposing_indicators = [
-        'deny', 'denied', 'false', 'fake', 'hoax', 'misinformation', 'disinformation',
-        'incorrect', 'wrong', 'untrue', 'debunk', 'refute', 'contradict', 'oppose',
-        'reject', 'dispute', 'challenge', 'question', 'doubt', 'skeptical',
-        'إنكار', 'كاذب', 'مزيف', 'خاطئ', 'خطأ', 'رفض', 'تناقض', 'معارضة',
-        'تشكيك', 'شك', 'تساؤل', 'تحدي'
-    ]
-    
-    # Neutral indicators (محايد)
-    neutral_indicators = [
-        'unclear', 'uncertain', 'unknown', 'investigating', 'pending', 'ongoing',
-        'developing', 'breaking', 'update', 'report', 'news', 'analysis',
-        'غير واضح', 'غير مؤكد', 'غير معروف', 'تحقيق', 'قيد البحث', 'جاري',
-        'تطوير', 'عاجل', 'تحديث', 'تقرير', 'خبر', 'تحليل'
-    ]
-    
-    # Count supporting indicators
-    supporting_count = 0
-    for indicator in supporting_indicators:
-        if indicator in title or indicator in snippet:
-            supporting_count += 1
-    
-    # Count opposing indicators
-    opposing_count = 0
-    for indicator in opposing_indicators:
-        if indicator in title or indicator in snippet:
-            opposing_count += 1
-    
-    # Count neutral indicators
-    neutral_count = 0
-    for indicator in neutral_indicators:
-        if indicator in title or indicator in snippet:
-            neutral_count += 1
-    
-    # Check for social media or blog indicators (usually less reliable)
-    social_indicators = ['twitter.com', 'facebook.com', 'instagram.com', 'tiktok.com', 'blog', 'blogspot', 'wordpress.com']
-    is_social_media = any(indicator in url for indicator in social_indicators)
-    
-    # Check for credible news sources
-    credible_domains = [
-        'reuters.com', 'bbc.com', 'cnn.com', 'ap.org', 'afp.com',
-        'aljazeera.com', 'dw.com', 'france24.com', 'rt.com',
-        'gov.', 'edu.', 'who.int', 'un.org', 'imf.org', 'worldbank.org',
-        'spa.gov.sa', 'wam.ae', 'mena.gov.ae', 'qna.org.qa',
-        'alwatan.com.sa', 'okaz.com.sa', 'alriyadh.com',
-        'alhayat.com', 'asharqalawsat.com', 'alquds.co.uk'
-    ]
-    is_credible = any(domain in url for domain in credible_domains)
-    
-    # Weight the indicators based on credibility
-    credibility_weight = 2 if is_credible else 1
-    social_media_penalty = 0.5 if is_social_media else 1
-    
-    # Calculate weighted scores
-    supporting_score = supporting_count * credibility_weight * social_media_penalty
-    opposing_score = opposing_count * credibility_weight * social_media_penalty
-    neutral_score = neutral_count * credibility_weight * social_media_penalty
-    
-    # Determine classification based on highest score
-    if supporting_score > opposing_score and supporting_score > neutral_score:
-        return "supporting"
-    elif opposing_score > supporting_score and opposing_score > neutral_score:
-        return "opposing"
-    else:
-        return "neutral"
-
-
-def calculate_source_percentages(sources: list, claim_text: str = "") -> dict:
-    """
-    Calculate the percentage of supporting, opposing, and neutral sources
-    """
-    if not sources:
-        return {
-            "supporting_percentage": 0.0,
-            "opposing_percentage": 0.0,
-            "neutral_percentage": 0.0,
-            "total_sources": 0,
-            "supporting_count": 0,
-            "opposing_count": 0,
-            "neutral_count": 0
-        }
-    
-    supporting_count = 0
-    opposing_count = 0
-    neutral_count = 0
-    
-    for source in sources:
-        classification = classify_source_support(source, claim_text)
-        if classification == "supporting":
-            supporting_count += 1
-        elif classification == "opposing":
-            opposing_count += 1
-        else:  # neutral
-            neutral_count += 1
-    
-    total_sources = len(sources)
-    supporting_percentage = (supporting_count / total_sources) * 100 if total_sources > 0 else 0
-    opposing_percentage = (opposing_count / total_sources) * 100 if total_sources > 0 else 0
-    neutral_percentage = (neutral_count / total_sources) * 100 if total_sources > 0 else 0
-    
-    return {
-        "supporting_percentage": round(supporting_percentage, 1),
-        "opposing_percentage": round(opposing_percentage, 1),
-        "neutral_percentage": round(neutral_percentage, 1),
-        "total_sources": total_sources,
-        "supporting_count": supporting_count,
-        "opposing_count": opposing_count,
-        "neutral_count": neutral_count
-    }
 
 
 async def check_fact_simple_async(claim_text: str, k_sources: int = 5, generate_news: bool = False, preserve_sources: bool = False, generate_tweet: bool = False) -> dict:
@@ -945,24 +823,86 @@ CURRENT_DATE: {datetime.now().strftime('%Y-%m-%d')}
                     "talk": "حدث خطأ أثناء معالجة نتائج التحقق. يرجى المحاولة مرة أخرى.",
                     "sources": [],
                     "news_article": None,
-                    "x_tweet": None,
-                    "source_statistics": {}
+                    "x_tweet": None
                 }
 
         case = parsed.get("الحالة", "غير مؤكد")
         talk = parsed.get("talk", "")
         sources = parsed.get("sources", [])
         
-        # Remove duplicates from sources based on URL
+        # Remove duplicates and irrelevant sources
         if sources:
             unique_sources = []
             seen_source_urls = set()
+            
+            # Extract key words from claim (ignore common stop words)
+            stop_words = {'في', 'من', 'إلى', 'على', 'عن', 'مع', 'هذا', 'هذه', 'ذلك', 'التي', 'الذي', 
+                         'و', 'أو', 'لكن', 'ف', 'ب', 'ك', 'ل', 'the', 'a', 'an', 'and', 'or', 'but', 'in', 
+                         'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were'}
+            claim_words = set(word.lower() for word in processed_claim.split() if word.lower() not in stop_words and len(word) > 2)
+            
             for source in sources:
                 source_url = source.get("url", "")
-                if source_url and source_url not in seen_source_urls:
+                source_title = source.get("title", "").lower()
+                source_snippet = source.get("snippet", "").lower()
+                
+                # Skip if URL is empty or already seen
+                if not source_url or source_url in seen_source_urls:
+                    continue
+                
+                # Check if source is relevant to the claim
+                # More strict relevance check: title + snippet should contain meaningful key words
+                title_words = set(word.lower() for word in source_title.split() if word.lower() not in stop_words and len(word) > 2)
+                snippet_words = set(word.lower() for word in source_snippet.split() if word.lower() not in stop_words and len(word) > 2)
+                all_source_words = title_words | snippet_words
+                
+                # Calculate relevance score
+                if claim_words and all_source_words:
+                    common_words = claim_words & all_source_words
+                    relevance_ratio = len(common_words) / len(claim_words) if claim_words else 0
+                    
+                    # More lenient threshold to ensure we get enough sources
+                    # Require at least 20% overlap OR at least 1-2 key words in common
+                    min_common = max(1, int(len(claim_words) * 0.2))
+                    
+                    # Accept if relevance is reasonable (20% or has at least min_common words)
+                    if len(common_words) >= min_common or relevance_ratio >= 0.2:
+                        unique_sources.append(source)
+                        seen_source_urls.add(source_url)
+                        if os.getenv("FACT_DEBUG", "0") == "1":
+                            print(f"✓ Relevant source: {source_title[:50]}... (score: {relevance_ratio:.2f}, common: {len(common_words)})")
+                    else:
+                        if os.getenv("FACT_DEBUG", "0") == "1":
+                            print(f"✗ Filtered out: {source_title[:50]}... (score: {relevance_ratio:.2f}, common: {len(common_words)})")
+                elif len(source_title) > 0:
+                    # If claim has no meaningful words, just check if source has title
                     unique_sources.append(source)
                     seen_source_urls.add(source_url)
+            
             sources = unique_sources
+            
+            # Ensure we have at least 3 sources if available from original results
+            # If we filtered too aggressively and have < 3 sources, add more from results
+            if len(sources) < 3 and len(results) > 0:
+                print(f"⚠️ Only {len(sources)} sources after filtering, adding more from search results...")
+                # Add sources from original results that haven't been added yet
+                for r in results[:10]:
+                    url = r.get("link", "")
+                    if url and url not in seen_source_urls:
+                        sources.append({
+                            "title": r.get("title", ""),
+                            "url": url,
+                            "snippet": r.get("snippet", "")
+                        })
+                        seen_source_urls.add(url)
+                        if len(sources) >= 5:  # Target at least 5 sources
+                            break
+                print(f"📚 Now have {len(sources)} sources after adding from search results")
+            
+            # Limit sources to top 10 to avoid overwhelming response
+            if len(sources) > 10:
+                sources = sources[:10]
+                print(f"📚 Limited sources to top 10 (from {len(unique_sources)})")
         
         # Ensure sources are returned for "حقيقي" cases
         # If no sources found and case is "حقيقي", use original search results
@@ -1023,17 +963,12 @@ CURRENT_DATE: {datetime.now().strftime('%Y-%m-%d')}
                 # Clear sources as per original logic
                 sources = []
 
-        # Calculate source percentages for all sources (including original search results)
-        all_sources = [{"title": r.get("title", ""), "url": r.get("link", ""), "snippet": r.get("snippet", "")} for r in results]
-        source_percentages = calculate_source_percentages(all_sources, processed_claim)
-
         return {
             "case": case, 
             "talk": talk, 
             "sources": sources,
             "news_article": news_article if generate_news else None,
-            "x_tweet": x_tweet if generate_tweet else None,
-            "source_statistics": source_percentages
+            "x_tweet": x_tweet if generate_tweet else None
         }
 
     except Exception as e:
