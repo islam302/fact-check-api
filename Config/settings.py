@@ -23,16 +23,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-#r2(!mecdu9s0-b7k(g9#-50ff3(y2cn-8getv&t2=14vi22oc'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
+    '62.72.22.223',
     'fact-check-api-32dx.onrender.com',
     'fact-check-nine.vercel.app',
     'fact-check.una-oic.org',
     'fact-check-demo.vercel.app'
-
 ]
 
 CORS_ALLOWED_ORIGINS = [
@@ -40,6 +40,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
     "http://localhost:5174",
+    "http://62.72.22.223",
     "https://fact-check-api-32dx.onrender.com",
     "https://fact-check-nine.vercel.app",
     "https://fact-check.una-oic.org",
