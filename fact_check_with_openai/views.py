@@ -100,11 +100,16 @@ class FactCheckWithOpenaiView(View):
 
                 user_agent = request.META.get('HTTP_USER_AGENT', '')
 
+                # Debug: Print talk length before saving
+                talk_content = result.get("talk", "")
+                print(f"📝 Talk length before saving: {len(talk_content)} characters")
+                print(f"📝 Talk preview: {talk_content[:200]}...")
+
                 # حفظ في Database باستخدام sync_to_async
                 await sync_to_async(FactCheckHistory.objects.create)(
                     query=query,
                     case=result.get("case", "unverified"),
-                    talk=result.get("talk", ""),
+                    talk=talk_content,
                     sources=result.get("sources", []),
                     news_article=result.get("news_article"),
                     x_tweet=result.get("x_tweet"),

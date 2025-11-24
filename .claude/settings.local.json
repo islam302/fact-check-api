@@ -20,7 +20,8 @@
       "Bash(nul)",
       "Bash(exit 0)",
       "Bash(\"env/Scripts/python.exe\" manage.py migrate dashboard)",
-      "Bash(del \"dashboard\\migrations\\0002_alter_factcheckhistory_id.py\")"
+      "Bash(del \"dashboard\\migrations\\0002_alter_factcheckhistory_id.py\")",
+      "Bash(\"env/Scripts/python.exe\" manage.py shell -c \"from dashboard.models import FactCheckHistory; checks = FactCheckHistory.objects.all(); print(f''Total: {checks.count()}''); [print(f''Record {i+1}: Talk length = {len(c.talk)} chars'') for i, c in enumerate(checks)]\")"
     ],
     "deny": [],
     "ask": []
