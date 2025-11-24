@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"env/Scripts/python.exe\" manage.py makemigrations)",
+      "Bash(\"env/Scripts/python.exe\" manage.py showmigrations auth_app)",
+      "Bash(\"env/Scripts/python.exe\" manage.py migrate:*)",
+      "Bash(\"env/Scripts/python.exe\" fix_migrations.py)",
+      "Bash(\"env/Scripts/python.exe\" manage.py migrate --run-syncdb)",
+      "Bash(\"env/Scripts/python.exe\" manage.py:*)",
+      "Bash(dir:*)",
+      "Bash(\"env/Scripts/python.exe\" manage.py makemigrations auth_app)",
+      "Bash(\"env/Scripts/python.exe\" manage.py migrate auth_app)",
+      "Bash(\"env/Scripts/python.exe\" manage.py showmigrations)",
+      "Bash(\"env/Scripts/python.exe\" manage.py shell)",
+      "Bash(\"env/Scripts/python.exe\" manage.py check)",
+      "Bash(\"env/Scripts/python.exe\":*)",
+      "Bash(\"env/Scripts/python.exe\" manage.py shell:*)",
+      "Bash(\"env/Scripts/python.exe\" manage.py runserver:*)",
+      "Bash(timeout /t 3)",
+      "Bash(nul)",
+      "Bash(exit 0)",
+      "Bash(\"env/Scripts/python.exe\" manage.py migrate dashboard)",
+      "Bash(del \"dashboard\\migrations\\0002_alter_factcheckhistory_id.py\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

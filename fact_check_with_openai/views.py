@@ -6,6 +6,7 @@ from django.http import JsonResponse, HttpRequest, HttpResponse
 import json
 import traceback
 import asyncio
+from asgiref.sync import sync_to_async
 
 # Import async utilities
 from .utils_async import (
@@ -21,6 +22,9 @@ from .utils import (
     generate_professional_news_article_from_analysis,
     generate_x_tweet
 )
+
+# Import dashboard model
+from dashboard.models import FactCheckHistory
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -84,6 +88,35 @@ class FactCheckWithOpenaiView(View):
             
             # استخدام النسخة الـ async
             result = await check_fact_simple_async(query, k_sources=10, generate_news=generate_news, preserve_sources=preserve_sources, generate_tweet=generate_tweet)
+
+            # ✅ حفظ النتيجة في قاعدة البيانات
+            try:
+                # الحصول على IP و User Agent
+                x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+                if x_forwarded_for:
+                    ip_address = x_forwarded_for.split(',')[0]
+                else:
+                    ip_address = request.META.get('REMOTE_ADDR')
+
+                user_agent = request.META.get('HTTP_USER_AGENT', '')
+
+                # حفظ في Database باستخدام sync_to_async
+                await sync_to_async(FactCheckHistory.objects.create)(
+                    query=query,
+                    case=result.get("case", "unverified"),
+                    talk=result.get("talk", ""),
+                    sources=result.get("sources", []),
+                    news_article=result.get("news_article"),
+                    x_tweet=result.get("x_tweet"),
+                    ip_address=ip_address,
+                    user_agent=user_agent
+                )
+                print(f"✅ Successfully saved to database: {query[:50]}...")
+            except Exception as db_error:
+                # في حالة فشل حفظ البيانات، نطبع الخطأ لكن نكمل
+                print(f"❌ Error saving to database: {db_error}")
+                import traceback
+                traceback.print_exc()
 
             # ✅ نعيد المفاتيح الموحدة
             return JsonResponse(

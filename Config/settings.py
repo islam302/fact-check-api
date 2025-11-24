@@ -56,9 +56,16 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'auth_app',  
     'fact_check_with_openai',
     'image_fact_check',
+    'dashboard',
 ]
+
+# Set Custom User Model
+AUTH_USER_MODEL = 'auth_app.CustomUser'
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -94,10 +101,10 @@ WSGI_APPLICATION = 'Config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'data_handler_db_hgn2',
-        'USER': 'data_handler_db_user',
-        'PASSWORD': 'aPJZR9ECxbppOtpjooQ4JnF3hcSuFuo7',
-        'HOST': 'dpg-d14bpq15pdvs73f14js0-a.oregon-postgres.render.com',
+        'NAME': 'fact_check_db',
+        'USER': 'fact_check_db_user',
+        'PASSWORD': '2NKsTB96nQ9w4N1v4O1pmMfVZJiulcPp',
+        'HOST': 'dpg-d4g5it2li9vc73d1f7vg-a.oregon-postgres.render.com',
         'PORT': '5432',
     }
 }
@@ -152,3 +159,27 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# REST Framework Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 50,
+}
+
+# JWT Configuration
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}

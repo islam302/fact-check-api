@@ -18,7 +18,16 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
+    # Django Admin Panel
     path('admin/', admin.site.urls),
+
+    # Public Fact Check APIs
     path('fact_check/', include('fact_check_with_openai.urls')),
     path('image_check/', include('image_fact_check.urls')),
+
+    # Authentication API (Login, User Management, etc.)
+    path('auth/', include('auth_app.urls')),
+
+    # Dashboard API (Fact Check History Management)
+    path('dashboard/', include('dashboard.urls')),
 ]
