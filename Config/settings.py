@@ -32,7 +32,8 @@ ALLOWED_HOSTS = [
     'fact-check-api-32dx.onrender.com',
     'fact-check-nine.vercel.app',
     'fact-check.una-oic.org',
-    'fact-check-demo.vercel.app'
+    'fact-check-demo.vercel.app',
+    'fact-check-dashboard.vercel.app'
 ]
 
 CORS_ALLOWED_ORIGINS = [
@@ -44,7 +45,8 @@ CORS_ALLOWED_ORIGINS = [
     "https://fact-check-api-32dx.onrender.com",
     "https://fact-check-nine.vercel.app",
     "https://fact-check.una-oic.org",
-    "https://fact-check-demo.vercel.app"
+    "https://fact-check-demo.vercel.app",
+    "https://fact-check-dashboard.vercel.app"
 ]
 
 
