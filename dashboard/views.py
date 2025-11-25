@@ -172,3 +172,20 @@ class FactCheckHistoryViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(fact_check)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['delete'])
+    def delete_all(self, request):
+        """
+        Delete all fact check history records
+        Endpoint: /api/admin/fact-checks/delete_all/
+        """
+        count = FactCheckHistory.objects.count()
+        FactCheckHistory.objects.all().delete()
+
+        return Response(
+            {
+                'message': f'Successfully deleted {count} fact check records',
+                'deleted_count': count
+            },
+            status=status.HTTP_200_OK
+        )
