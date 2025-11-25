@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import IsAdminUser, AllowAny
 from django.db.models import Count, Q
 from django.utils import timezone
 from datetime import timedelta
@@ -20,7 +20,7 @@ class FactCheckHistoryViewSet(viewsets.ModelViewSet):
     Requires admin authentication
     """
     queryset = FactCheckHistory.objects.all()
-    permission_classes = [IsAdminUser]
+    permission_classes = [AllowAny]
     pagination_class = None  # Disable pagination
     filterset_fields = ['case', 'created_at']
     search_fields = ['query', 'talk', 'ip_address']
