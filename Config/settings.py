@@ -33,7 +33,8 @@ ALLOWED_HOSTS = [
     'fact-check-nine.vercel.app',
     'fact-check.una-oic.org',
     'fact-check-demo.vercel.app',
-    'fact-check-dashboard.vercel.app'
+    'fact-check-dashboard.vercel.app',
+    'palesti-fact.una-gate.com'
 ]
 
 CORS_ALLOWED_ORIGINS = [
@@ -46,7 +47,8 @@ CORS_ALLOWED_ORIGINS = [
     "https://fact-check-nine.vercel.app",
     "https://fact-check.una-oic.org",
     "https://fact-check-demo.vercel.app",
-    "https://fact-check-dashboard.vercel.app"
+    "https://fact-check-dashboard.vercel.app",
+    "https://palesti-fact.una-gate.com"
 ]
 
 
